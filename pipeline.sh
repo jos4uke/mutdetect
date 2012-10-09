@@ -90,7 +90,7 @@ grep -v "*" $3_tmp.sam > $3_mapped.sam
 echo "$(date '+%Y%m%d %r') $3_mapped.sam $(wc -l $3_mapped.sam | awk '{print $1}') " >> $LOGFILE
 
 # Remove reads with more than 2 mismatches
-grep "NM:i:[012]" $3_mapped.sam > $3_mapped_NM2.sam
+grep "NM:i:[012][[:space:]]" $3_mapped.sam > $3_mapped_NM2.sam
 
 # Count the number of aligned reads in sam file
 echo "$(date '+%Y%m%d %r') $3_mapped_NM2.sam $(wc -l $3_mapped_NM2.sam | awk '{print $1}') " >> $LOGFILE
