@@ -90,10 +90,16 @@ grep -v "*" $3_tmp.sam > $3_mapped.sam
 echo "$(date '+%Y%m%d %r') $3_mapped.sam $(wc -l $3_mapped.sam | awk '{print $1}') " >> $LOGFILE
 
 # Remove reads with more than 2 mismatches
-grep "NM:i:[012][[:space:]]" $3_mapped.sam > $3_mapped_NM2.sam
+#grep "NM:i:[012][[:space:]]" $3_mapped.sam > $3_mapped_NM2.sam
+
+awk '{if($5<0 || $5>20) print}' $3_mapped.sam >  $3_mapped_MAPQ_tmp.sam
+cat header.txt $3_mapped_MAPQ_tmp.sam >  $3_mapped_MAPQ.sam
+
+echo "$(date '+%Y%m%d %r') $3_mapped_MAPQ.sam $(wc -l $3_mapped_MAPQ.sam | awk '{print $1-8}') " >> $LOGFILE
+
 
 # Count the number of aligned reads in sam file
-echo "$(date '+%Y%m%d %r') $3_mapped_NM2.sam $(wc -l $3_mapped_NM2.sam | awk '{print $1}') " >> $LOGFILE
+echo "$(date '+%Y%m%d %r') $3_mapped_MAPQ.sam $(wc -l $3_mapped_MAPQ.sam | awk '{print $1}') " >> $LOGFILE
 
 # Remove suboptimal hits => Do not delete alignment but Modify reported alignment
 
@@ -123,14 +129,14 @@ sub("X1:i:[123]","X1:i:0",$0)
 print
 }' $3_mapped_NM2.sam > $3_mapped_NM2_BH.sam
 
-echo "$(date '+%Y%m%d %r') $3_mapped_NM2_BH.sam $(wc -l $3_mapped_BH.sam | awk '{print $1}') " >> $LOGFILE
+echo "$(date '+%Y%m%d %r') $3_mapped_NM2_BH.sam $(wc -l $3_mapped_NM2_BH.sam | awk '{print $1}') " >> $LOGFILE
 
 # Remove hits with 0<MAPQ<20 
 
-awk '{if($5<0 || $5>20) print}' $3_mapped_NM2_BH.sam >  $3_mapped_NM2_BH_MAPQ_tmp.sam
-cat header.txt $3_mapped_NM2_BH_MAPQ_tmp.sam >  $3_mapped_NM2_BH_MAPQ.sam
+#awk '{if($5<0 || $5>20) print}' $3_mapped_NM2_BH.sam >  $3_mapped_NM2_BH_MAPQ_tmp.sam
+#cat header.txt $3_mapped_NM2_BH_MAPQ_tmp.sam >  $3_mapped_NM2_BH_MAPQ.sam
 
-echo "$(date '+%Y%m%d %r') $3_mapped_NM2_BH_MAPQ.sam $(wc -l $3_mapped_NM2_BH_MAPQ.sam | awk '{print $1-8}') " >> $LOGFILE
+#echo "$(date '+%Y%m%d %r') $3_mapped_NM2_BH_MAPQ.sam $(wc -l $3_mapped_NM2_BH_MAPQ.sam | awk '{print $1-8}') " >> $LOGFILE
 
     # Convert SAM to BAM
 
