@@ -31,7 +31,7 @@ fastqc $2 -o $3_2_Qual_Raw_Reads
 
 # Trimmomatic
 
-java -classpath /usr/local/src/Trimmomatic-0.22/trimmomatic-0.22.jar org.usadellab.trimmomatic.TrimmomaticPE -threads 4 -phred33 -trimlog LogTrim $1 $2 $1_paired.fq $1_single.fq $2_paired.fq $2_single.fq  LEADING:20 TRAILING:20 SLIDINGWINDOW:4:15 MINLEN:50
+java -classpath /usr/local/src/Trimmomatic-0.22/trimmomatic-0.22.jar org.usadellab.trimmomatic.TrimmomaticPE -threads 4 -phred33 -trimlog LogTrim $1 $2 $1_paired.fq $1_single.fq $2_paired.fq $2_single.fq  LEADING:20 TRAILING:20 SLIDINGWINDOW:4:20 MINLEN:50
 
 mkdir $3_1_Qual_Trim_Reads $3_2_Qual_Trim_Reads
 fastqc $1_paired.fq -o $3_1_Qual_Trim_Reads
@@ -95,11 +95,14 @@ echo "$(date '+%Y%m%d %r') $3_mapped.sam $(wc -l $3_mapped.sam | awk '{print $1}
 awk '{if($5<0 || $5>20) print}' $3_mapped.sam >  $3_mapped_MAPQ_tmp.sam
 cat header.txt $3_mapped_MAPQ_tmp.sam >  $3_mapped_MAPQ.sam
 
+# Count the number of aligned reads in sam file
 echo "$(date '+%Y%m%d %r') $3_mapped_MAPQ.sam $(wc -l $3_mapped_MAPQ.sam | awk '{print $1-8}') " >> $LOGFILE
 
+# Filter CIGAR code for I or D < 5 (make it a variable)
+#TODO
 
-# Count the number of aligned reads in sam file
-echo "$(date '+%Y%m%d %r') $3_mapped_MAPQ.sam $(wc -l $3_mapped_MAPQ.sam | awk '{print $1}') " >> $LOGFILE
+# Filter on XO and XM (3 cases)
+#TODO: XM=0:XO<=2 ; XM=1:XO<=1; XM=2:XO=0 
 
 # Remove suboptimal hits => Do not delete alignment but Modify reported alignment
 
