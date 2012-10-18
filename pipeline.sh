@@ -3,12 +3,15 @@
 # Equipe Dev 
 # Script provisoire pour la détection de mutation 
 
+. ./lib/pipeline_lib.inc
 
 ARGS=3
-GENOME_INDEX="/projects/ARABIDOPSIS/INDEX/Col0_bwa_0.6.1/TAIR10_All_Chrom.fas"
 LOGFILE=$3_$(date '+%Y_%m_%d_%H_%M')_log.txt
 WORKING_DIR=$(pwd)
-GENOME_FASTA=
+PIPELINE_DEFAULT_CONFIG="/projects/ARABIDOPSIS/SCRIPTS/PIPELINE/pipeline_default.config"
+
+# GLOBAL VARIABLE
+declare -A PARAMETERS_TABLE
 
 # TEST if enough args
 
@@ -18,12 +21,25 @@ then
   exit $?
 fi
 
+# TEST if files exist 
+
 if [[ -e $1 || -e $2 ]]; then
 	echo "# $(date '+%Y%m%d %r') Input Files exists ! Let's check sequences quality ..." >> $LOGFILE
 else 
-	echo "File does not exists"
+	echo "File does not exist"
 	exit $?
 fi 
+
+# TEST if pipeline_default.config exists
+
+if [[ -e $PIPELINE_DEFAULT_CONFIG ]]; then
+	echo "# $(date '+%Y%m%d %r') default config file exists ! Let's check parameters validity ..." >> $LOGFILE
+	get_pipeline_default_parameters $PIPELINE_DEFAULT_CONFIG
+else 
+	echo "File does not exist"
+	exit $?
+fi 
+
 
 mkdir  $3_1_Qual_Raw_Reads $3_2_Qual_Raw_Reads
 fastqc $1 -o $3_1_Qual_Raw_Reads
