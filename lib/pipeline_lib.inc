@@ -1,7 +1,11 @@
 #! /bin/bash
+#
+# PIPELINE FUNCTIONS LIBRARY
+#
 
-# Function to 
-
+#------------------------------------------
+# get_pipeline_default_parameters function
+# 
 get_pipeline_default_parameters()
 {
     INFILE=$1
@@ -24,5 +28,24 @@ get_pipeline_default_parameters()
 	    #echo -e "$key\t${PARAMETERS_TABLE[${key}]}"
 
 	fi    
+    done < $INFILE
+}
+
+#-----------------------------------------------------------
+# remove_reads_with_more_than_x_independent_events function
+#
+remove_reads_with_more_than_x_independent_events()
+{
+    INFILE=$1
+    while read line
+    do
+	XM=$(echo -e "$line" | perl -ne 'if ($_=~m/XM:i:(\d)+/) {print $1;}')
+	#echo -e "XM=$XM" 1>&2
+	XO=$(echo -e "$line" | perl -ne 'if ($_=~m/XO:i:(\d)+/) {print $1;}')
+	#echo -e "XO=$XO" 1>&2
+	if [[ "$[$XM + $XO]" -le ${PARAMETERS_TABLE["nb_of_independent_event"]} ]]
+	    then
+	    echo -e "$line"
+	fi
     done < $INFILE
 }
