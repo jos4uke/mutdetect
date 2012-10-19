@@ -3,14 +3,28 @@
 # Equipe Dev 
 # Script provisoire pour la détection de mutation 
 
-. ./lib/pipeline_lib.inc
+# Inclusion de la librairie de fonctions
+
+PREFIX="/projects/ARABIDOPSIS/SCRIPTS/PIPELINE"
+. $PREFIX/lib/pipeline_lib.inc
+
+# Positionnement des variables
 
 ARGS=3
-LOGFILE=$3_$(date '+%Y_%m_%d_%H_%M')_log.txt
+DATE=$(date '+%Y_%m_%d_%H_%M')
+LOGFILE=$3_$DATE\_log.txt
 WORKING_DIR=$(pwd)
 PIPELINE_DEFAULT_CONFIG="/projects/ARABIDOPSIS/SCRIPTS/PIPELINE/pipeline_default.config"
 
-# GLOBAL VARIABLE
+LOG_DIR="log"
+TRIMMING_DIR="01_Trimming"
+MAPPING_DIR="02_Mapping"
+FILTER_DIR="03_Filter"
+
+TRIMMING_TMP=$TRIMMING_DIR/tmp
+MAPPING_TMP=$MAPPING_DIR/tmp
+
+# DECLARE GLOBAL VARIABLE
 declare -A PARAMETERS_TABLE
 
 # TEST if enough args
@@ -24,77 +38,182 @@ fi
 # TEST if files exist 
 
 if [[ -e $1 || -e $2 ]]; then
-	echo "# $(date '+%Y%m%d %r') Input Files exists ! Let's check sequences quality ..." >> $LOGFILE
+	echo "# $(date '+%Y%m%d %r') Input Files exists ! Let's check sequences quality ..." >> $LOG_DIR/$LOGFILE
+	#tmp=${1%\.*};
+	#FASTQ1_NAME=${tmp##*/}
+	#tmp=${2%\.*};
+	#FASTQ2_NAME=${tmp##*/}
 else 
 	echo "File does not exist"
 	exit $?
 fi 
 
-# TEST if pipeline_default.config exists
+# TODO TEST if the fastq files have the same number of reads
+# if it is not the case exit 
+
+
+# TEST if pipeline_default.config exists and put the parameters into a hash table
 
 if [[ -e $PIPELINE_DEFAULT_CONFIG ]]; then
-	echo "# $(date '+%Y%m%d %r') default config file exists ! Let's check parameters validity ..." >> $LOGFILE
+	echo "# $(date '+%Y%m%d %r') [get_pipeline_default_parameters] default config file exists ! Let's check parameters validity ..." >> $LOG_DIR/$LOGFILE
 	get_pipeline_default_parameters $PIPELINE_DEFAULT_CONFIG
 else 
 	echo "File does not exist"
 	exit $?
 fi 
 
+# Report parameters in LOGFILE
 
-mkdir  $3_1_Qual_Raw_Reads $3_2_Qual_Raw_Reads
-fastqc $1 -o $3_1_Qual_Raw_Reads
-fastqc $2 -o $3_2_Qual_Raw_Reads
 
-# Trimmomatic
+########################
+# SECTION TRIMMING
+#######################
 
-java -classpath /usr/local/src/Trimmomatic-0.22/trimmomatic-0.22.jar org.usadellab.trimmomatic.TrimmomaticPE -threads 4 -phred33 -trimlog LogTrim $1 $2 $1_paired.fq $1_single.fq $2_paired.fq $2_single.fq  LEADING:20 TRAILING:20 SLIDINGWINDOW:4:20 MINLEN:50
+# If they do not already exist, create directories to store QC and Filtering results
 
-mkdir $3_1_Qual_Trim_Reads $3_2_Qual_Trim_Reads
-fastqc $1_paired.fq -o $3_1_Qual_Trim_Reads
-fastqc $2_paired.fq -o $3_2_Qual_Trim_Reads
+if [[ ! -e $TRIMMING_DIR ]]; then
+    mkdir $TRIMMING_DIR 
+fi
 
-if [[ -e $1_paired.fq && -e $2_paired.fq ]]; then
-	echo "# $(date '+%Y%m%d %r') Input Files exists ! Run bwa aln ..." >> $LOGFILE
-else 
-	echo "File does not exists"
-	exit $?
-fi 
-   
+if [[ ! -e  $TRIMMING_DIR/$3_1_Qual_Raw_Reads ]]; then
+    mkdir $TRIMMING_DIR/$3_1_Qual_Raw_Reads
+fi
+
+if [[ ! -e  $TRIMMING_DIR/$3_2_Qual_Raw_Reads ]]; then
+    mkdir $TRIMMING_DIR/$3_2_Qual_Raw_Reads 
+fi
+
+# Check raw reads quality
+
+echo "# $(date '+%Y%m%d %r') [fastqc] QC directories exist ! Let's check raw reads quality ..." >> $LOG_DIR/$LOGFILE
+
+fastqc $1 -o $TRIMMING_DIR/$3_1_Qual_Raw_Reads 2>$TRIMMING_DIR/$TRIMMING_DIR_$DATE.log >> $TRIMMING_DIR/$TRIMMING_DIR_$DATE.log
+fastqc $2 -o $TRIMMING_DIR/$3_2_Qual_Raw_Reads 2>$TRIMMING_DIR/$TRIMMING_DIR_$DATE.log >> $TRIMMING_DIR/$TRIMMING_DIR_$DATE.log
+
+# TODO: Ici recuperer les infos et graphes de qualité
+
+# Trim reads by using Trimmomatic
+
+echo "# $(date '+%Y%m%d %r') [Trimmomatic]  Let's trim raw reads ..." >> $LOG_DIR/$LOGFILE
+
+if [[ ${PARAMETERS_TABLE["QUAL_ENCODING"]} -eq 33 ]]; then
+    java -classpath /usr/local/src/Trimmomatic-0.22/trimmomatic-0.22.jar org.usadellab.trimmomatic.TrimmomaticPE \
+	-threads ${PARAMETERS_TABLE["trimmo_thread_number"]} \
+	-phred33 \
+	-trimlog $TRIMMING_DIR/LogTrim \
+	$1 \
+	$2 \
+	$TRIMMING_DIR/$3_1_paired.fq $TRIMMING_DIR/$3_1_single.fq \
+	$TRIMMING_DIR/$3_2_paired.fq $TRIMMING_DIR/$3_2_single.fq  \
+	LEADING:${PARAMETERS_TABLE["trimmo_leading_qual_min"]}  \
+	TRAILING:${PARAMETERS_TABLE["trimmo_trailing_qual_min"]}  \
+	SLIDINGWINDOW:${PARAMETERS_TABLE["trimmo_slinding_window_size"]}:${PARAMETERS_TABLE["trimmo_sliding_window_qual"]} \
+	MINLEN:${PARAMETERS_TABLE["trimmo_min_length"]} 2>$TRIMMING_TMP \
+	>> $TRIMMING_TMP
+    else 
+    java -classpath /usr/local/src/Trimmomatic-0.22/trimmomatic-0.22.jar org.usadellab.trimmomatic.TrimmomaticPE \
+	-threads ${PARAMETERS_TABLE["trimmo_thread_number"]} \
+	-phred64 \
+	-trimlog $TRIMMING_DIR/LogTrim \
+	$1 \
+	$2 \
+	$TRIMMING_DIR/$3_1_paired.fq $TRIMMING_DIR/$3_1_single.fq \
+	$TRIMMING_DIR/$3_2_paired.fq $TRIMMING_DIR/$3_2_single.fq  \
+	LEADING:${PARAMETERS_TABLE["trimmo_leading_qual_min"]}  \
+	TRAILING:${PARAMETERS_TABLE["trimmo_trailing_qual_min"]}  \
+	SLIDINGWINDOW:${PARAMETERS_TABLE["trimmo_slinding_window_size"]}:${PARAMETERS_TABLE["trimmo_sliding_window_qual"]} \
+	MINLEN:${PARAMETERS_TABLE["trimmo_min_length"]} 2>$TRIMMING_TMP \
+	>> $TRIMMING_TMP
+fi
+
+cat $TRIMMING_TMP >> $TRIMMING_DIR/$TRIMMING_DIR_$DATE.log
+cat $TRIMMING_TMP >> $LOG_DIR/$LOGFILE
+
+# Check trimmed reads Quality
+
+if [[ ! -e  $TRIMMING_DIR/$3_1_Qual_Trim_Reads ]]; then
+    mkdir $TRIMMING_DIR/$3_1_Qual_Trim_Reads
+fi
+
+if [[ ! -e  $TRIMMING_DIR/$3_2_Qual_Trim_Reads ]]; then
+    mkdir $TRIMMING_DIR/$3_2_Qual_Trim_Reads 
+fi
+
+fastqc $TRIMMING_DIR/$3_1_paired.fq -o $TRIMMING_DIR/$3_1_Qual_Trim_Reads 2>$TRIMMING_DIR/$TRIMMING_DIR_$DATE.log >> $TRIMMING_DIR/$TRIMMING_DIR_$DATE.log
+fastqc $TRIMMING_DIR/$3_2_paired.fq -o $TRIMMING_DIR/$3_2_Qual_Trim_Reads 2>$TRIMMING_DIR/$TRIMMING_DIR_$DATE.log >> $TRIMMING_DIR/$TRIMMING_DIR_$DATE.log
+
+
+########################
+# SECTION MAPPING
+#######################
 
 # Using BWA to map reads
 # UP to two mismatches
-# To alliw, by exmple, one polymorphism + the mutation in the same read
+# To allow, by exmple, one polymorphism + the mutation in the same read
 
-bwa aln -n 2 -R 4 -t 4 $GENOME_INDEX $1_paired.fq > $3_1.sai
+# Create Mapping directory if does not exist
 
-bwa aln -n 2 -R 4 -t 4 $GENOME_INDEX $2_paired.fq > $3_2.sai
+if [[ ! -e $MAPPING_DIR ]]; then
+    mkdir $MAPPING_DIR 
+fi
+
+if [[ -e $TRIMMING_DIR/$3_1_paired.fq && -e $TRIMMING_DIR/$3_2_paired.fq ]]; then
+    echo "# $(date '+%Y%m%d %r') [bwa aln] Input Files exist ! Run bwa aln ..." >> $LOG_DIR/$LOGFILE
+    bwa aln \
+	-n ${PARAMETERS_TABLE["bwa_aln_n"]} \
+	-R ${PARAMETERS_TABLE["bwa_aln_R"]} \
+	-t ${PARAMETERS_TABLE["bwa_aln_t"]} \
+	${PARAMETERS_TABLE["BWA_REFERENCE_GENOME_INDEX"]} $TRIMMING_DIR/$3_1_paired.fq > $MAPPING_DIR/$3_1.sai 2>$MAPPING_DIR/$MAPPING_DIR_$DATE.log &
+    bwa aln \
+	-n ${PARAMETERS_TABLE["bwa_aln_n"]} \
+	-R ${PARAMETERS_TABLE["bwa_aln_R"]} \
+	-t ${PARAMETERS_TABLE["bwa_aln_t"]} ${PARAMETERS_TABLE["BWA_REFERENCE_GENOME_INDEX"]} $TRIMMING_DIR/$3_2_paired.fq > $MAPPING_DIR/$3_2.sai 2>$MAPPING_TMP\_1
+else 
+    echo "File does not exists"
+    exit $?
+fi 
+
 
 # TEST if sai files exists
 
-if [[ -e $3_1.sai && -e $3_2.sai ]]; then
-    echo "# .sai Files exists ! Run bwa sampe ..." >> $LOGFILE
+if [[ -e $MAPPING_DIR/$3_1.sai && -e $MAPPING_DIR/$3_2.sai ]]; then
+    echo "# $(date '+%Y%m%d %r') [bwa sampe] .sai Files exist ! Run bwa sampe ..." >> $LOG_DIR/$LOGFILE
+    bwa sampe \
+	-n ${PARAMETERS_TABLE["bwa_sampe_n"]} \
+	-N ${PARAMETERS_TABLE["bwa_sampe_N"]} \
+	${PARAMETERS_TABLE["BWA_REFERENCE_GENOME_INDEX"]} $MAPPING_DIR/$3_1.sai $MAPPING_DIR/$3_2.sai $TRIMMING_DIR/$3_1_paired.fq $TRIMMING_DIR/$3_2_paired.fq > $MAPPING_DIR/$3.sam 2>$MAPPING_TMP\_2
 else
     echo ".sai files do not exists"
-	exit $?
+    exit $?
 fi 
 
-echo "# bwa sampe -n 4 -N 0 -a 1000 $INDEX $3_1.sai $3_2.sai $1 $2 > $3_coller0_No_Filtre.sam" >> $LOGFILE
+cat $MAPPING_TMP\_1 >> $MAPPING_DIR/$MAPPING_DIR_$DATE.log
+cat $MAPPING_TMP\_2 >> $MAPPING_DIR/$MAPPING_DIR_$DATE.log
 
-    
-bwa sampe -n 4 -a 1000 -N 0 $GENOME_INDEX $3_1.sai $3_2.sai $1_paired.fq $2_paired.fq > $3.sam
+grep "^\[infer_isize\] inferred external" $MAPPING_DIR/$MAPPING_DIR_$DATE.log >> $LOG_DIR/$LOGFILE
 
-# TEST if sam file exists
+########################
+# SECTION FILTERING
+#######################
 
 if [[ -e $3.sam ]]; then
-    echo "# .sam file exists ! Start to filter alignments ..." >> $LOGFILE
+    echo "# .sam file exists ! Start to filter alignments ..." >> $LOG_DIR/$LOGFILE
 else 
     echo "sam file does not exist"
     exit $?
 fi
 
+if [[ ! -e $FILTER_DIR ]]; then
+    mkdir $FILTER_DIR 
+fi
 
-# Count the number of reads in sam file
-echo "$(date '+%Y%m%d %r') $3.sam $(wc -l $3.sam | awk '{print $1}') " >> $LOGFILE
+# Catch the sam file header
+grep "^@" $MAPPING_DIR/$3.sam > $FILTER_DIR/header.txt
+grep -v "^@" $MAPPING_DIR/$3.sam > $FILTER_DIR/$3_tmp.sam
+
+
+# Count the initial number of reads in sam file
+echo "$(date '+%Y%m%d %r') $3.sam $(wc -l $3.sam | awk '{print $1}') " >> $LOG_DIR/$LOGFILE
 
 head -8 $3.sam > header.txt
 sed '1,8d' $3.sam > $3_tmp.sam
@@ -116,6 +235,7 @@ echo "$(date '+%Y%m%d %r') $3_mapped_MAPQ.sam $(wc -l $3_mapped_MAPQ.sam | awk '
 
 # Filter CIGAR code for I or D < 5 (make it a variable)
 #TODO
+
 
 # Filter on XO and XM (3 cases)
 #TODO: XM=0:XO<=2 ; XM=1:XO<=1; XM=2:XO=0 
@@ -146,9 +266,9 @@ sub(XArray[i]";","",$0);
 }}}}
 sub("X1:i:[123]","X1:i:0",$0)
 print
-}' $3_mapped_NM2.sam > $3_mapped_NM2_BH.sam
+}' $3_mapped_MAPQ.sam > $3_mapped_MAPQ_BH.sam
 
-echo "$(date '+%Y%m%d %r') $3_mapped_NM2_BH.sam $(wc -l $3_mapped_NM2_BH.sam | awk '{print $1}') " >> $LOGFILE
+echo "$(date '+%Y%m%d %r') $3_mapped_MAPQ_BH.sam $(wc -l $3_mapped_MAPQ_BH.sam | awk '{print $1}') " >> $LOGFILE
 
 # Remove hits with 0<MAPQ<20 
 
@@ -159,25 +279,25 @@ echo "$(date '+%Y%m%d %r') $3_mapped_NM2_BH.sam $(wc -l $3_mapped_NM2_BH.sam | a
 
     # Convert SAM to BAM
 
-samtools view -bS  $3_mapped_NM2_BH_MAPQ.sam > $3.bam
+#samtools view -bS  $3_mapped_NM2_BH_MAPQ.sam > $3.bam
 
     # SORT BAM
 
-samtools sort $3.bam $3_sorted
+#samtools sort $3.bam $3_sorted
 
     # INDEX BAM
 
-samtools index $3_sorted.bam
+#samtools index $3_sorted.bam
 
     # GENERATE BCF (PER SITE INFOS)
     
-samtools faidx $GENOME_FASTA
+#samtools faidx $GENOME_FASTA
     
-samtools mpileup -B -Q 20 -u -f $GENOME_FASTA $3_sorted.bam > $3.bcf
+#samtools mpileup -B -Q 20 -u -f $GENOME_FASTA $3_sorted.bam > $3.bcf
     
     # VARIANT CALLING
 
-bcftools view -cvg $3.bcf > $3.vcf
+#bcftools view -cvg $3.bcf > $3.vcf
 
     # VARIANT FILTERING
     
