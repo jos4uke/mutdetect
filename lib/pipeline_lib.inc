@@ -39,7 +39,7 @@ remove_reads_with_more_than_x_independent_events()
     INFILE=$1
     while read line
     do
-	XM_XO=$(echo -e "$line" | perl -ne 'if ($_=~m/XM:i:(\d)+.*XO:i:(\d)+/) {print $1+$2;}')
+	XM_XO=$(echo $line | perl -ne 'if ($_=~m/XM:i:(\d+).*XO:i:(\d+)/) {print $1+$2;}')
 	#echo -e "XM+XO=$XM_XO" 1>&2
 
 	if [[ $XM_XO -le ${PARAMETERS_TABLE["nb_of_independent_event"]} ]]
