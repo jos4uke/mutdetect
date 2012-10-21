@@ -196,7 +196,7 @@ grep "^\[infer_isize\] inferred external" $MAPPING_DIR/$MAPPING_DIR_$DATE.log >>
 # SECTION FILTERING
 #######################
 
-if [[ -e $3.sam ]]; then
+if [[ -e $MAPPING_DIR/$3.sam ]]; then
     echo "# .sam file exists ! Start to filter alignments ..." >> $LOG_DIR/$LOGFILE
 else 
     echo "sam file does not exist"
@@ -211,71 +211,33 @@ fi
 grep "^@" $MAPPING_DIR/$3.sam > $FILTER_DIR/header.txt
 grep -v "^@" $MAPPING_DIR/$3.sam > $FILTER_DIR/$3_tmp.sam
 
-
 # Count the initial number of reads in sam file
-echo "$(date '+%Y%m%d %r') $3.sam $(wc -l $3.sam | awk '{print $1}') " >> $LOG_DIR/$LOGFILE
-
-head -8 $3.sam > header.txt
-sed '1,8d' $3.sam > $3_tmp.sam
+echo "$(date '+%Y%m%d %r') [Filter] $3.sam $(wc -l $MAPPING_DIR/$3.sam | awk '{print $1}') " >> $LOG_DIR/$LOGFILE
 
 # Remove non aligned reads
-grep -v "*" $3_tmp.sam > $3_mapped.sam
+grep -v "*" $FILTER_DIR/$3_tmp.sam > $FILTER_DIR/$3_mapped.sam
 
 # Count the number of aligned reads in sam file
-echo "$(date '+%Y%m%d %r') $3_mapped.sam $(wc -l $3_mapped.sam | awk '{print $1}') " >> $LOGFILE
+echo "$(date '+%Y%m%d %r') [Filter] $FILTER_DIR/$3_mapped.sam $(wc -l $FILTER_DIR/$3_mapped.sam | awk '{print $1}') " >> $LOG_DIR/$LOGFILE
 
-# Remove reads with more than 2 mismatches
-#grep "NM:i:[012][[:space:]]" $3_mapped.sam > $3_mapped_NM2.sam
 
-awk '{if($5<0 || $5>20) print}' $3_mapped.sam >  $3_mapped_MAPQ_tmp.sam
-cat header.txt $3_mapped_MAPQ_tmp.sam >  $3_mapped_MAPQ.sam
+# FILTRE sur MAPQ
+awk '{if($5<0 || $5>20) print}' $FILTER_DIR/$3_mapped.sam > $FILTER_DIR/$3_mapped_MAPQ.sam
 
 # Count the number of aligned reads in sam file
-echo "$(date '+%Y%m%d %r') $3_mapped_MAPQ.sam $(wc -l $3_mapped_MAPQ.sam | awk '{print $1-8}') " >> $LOGFILE
+echo "$(date '+%Y%m%d %r') [Filter] $FILTER_DIR/$3_mapped_MAPQ.sam $(wc -l $FILTER_DIR/$3_mapped_MAPQ.sam | awk '{print $1-8}') " >> $LOG_DIR/$LOGFILE
 
-# Filter CIGAR code for I or D < 5 (make it a variable)
-#TODO
+exit
 
-
+# TODO
+# Remove reads with more than 2 independant events
+# Xo+Xm <= 2
 # Filter on XO and XM (3 cases)
 #TODO: XM=0:XO<=2 ; XM=1:XO<=1; XM=2:XO=0 
-
-# Remove suboptimal hits => Do not delete alignment but Modify reported alignment
-
-awk '{
-if($0 ~ "X1:i:[123]"){
-whereX0=match($0,"X0:i:")
-X0=substr($0,whereX0+5,1);
-
-whereX1=match($0,"X1:i:")
-X1=substr($0,whereX1+5,1);
-
-whereNM=match($0,"NM:i:")
-NM=substr($0,whereNM+5,1);
-
-if(X0 == 1){
-sub("\t"$NF,"",$0)
-}
-else{
-split($NF,XAfield,":");
-split(XAfield[3],XArray,";");
-for(i=1;i<=(X0+X1-1);i++){
-split(XArray[i],SHarray,",")
-if(SHarray[4] > NM){
-sub(XArray[i]";","",$0);
-}}}}
-sub("X1:i:[123]","X1:i:0",$0)
-print
-}' $3_mapped_MAPQ.sam > $3_mapped_MAPQ_BH.sam
-
-echo "$(date '+%Y%m%d %r') $3_mapped_MAPQ_BH.sam $(wc -l $3_mapped_MAPQ_BH.sam | awk '{print $1}') " >> $LOGFILE
-
-# Remove hits with 0<MAPQ<20 
-
-#awk '{if($5<0 || $5>20) print}' $3_mapped_NM2_BH.sam >  $3_mapped_NM2_BH_MAPQ_tmp.sam
-#cat header.txt $3_mapped_NM2_BH_MAPQ_tmp.sam >  $3_mapped_NM2_BH_MAPQ.sam
-
-#echo "$(date '+%Y%m%d %r') $3_mapped_NM2_BH_MAPQ.sam $(wc -l $3_mapped_NM2_BH_MAPQ.sam | awk '{print $1-8}') " >> $LOGFILE
+#Filter CIGAR code for I or D < 5 (make it a variable)
+#TODO
+# Add the header à la fin du filtrage
+#
 
     # Convert SAM to BAM
 
