@@ -53,3 +53,54 @@ remove_reads_with_more_than_x_independent_events()
     done < $INFILE
     #IFS=$old
 }
+
+#-------------------------------------------------------------
+# remove_reads_with_indels_size_greater_than_y_bases function
+#
+remove_reads_with_indels_size_greater_than_y_bases()
+{
+    INFILE=$1
+    while read line 
+    do
+	# find a way to return all occurences of the pattern in CIGAR code
+	# echo '10M5I5D8M3I7M' | gawk 'function findall(str, re) { while(match(str, re, a)) {sub("I", "", a[0]); print a[0]; str = substr(str, RSTART+RLENGTH)} } { findall($0, "([0-9]+)I"); }'
+	echo $line | gawk -v limit=${PARAMETERS_TABLE["microindel_size"]} \
+	    'function findAllIndelsSize(str, lim)
+             {
+                flag=0;
+                while(match(str, /([0-9]+)[ID]/, a)) 
+                {
+                   sub("[ID]", "", a[0]);
+                   if (a[0] <= lim)
+                   {
+                      flag=1;
+                   } else
+                   {
+                      flag=0;
+                      break;
+                   }
+                   str = substr(str, RSTART+RLENGTH)
+                }
+                if (flag == 1)
+                {
+                   print $0;
+                }  else
+                {
+                   print $0 > "/dev/stderr"
+                }
+             }
+             {
+                split($0, FA, " ");
+                if (FA[6] ~ "^[0-9]+M$")
+                {
+                   print $0;
+                } else if (FA[6] ~ "[ID]")
+                {
+                   findAllIndelsSize($0, limit)
+                } else # reads with soft clipping
+                {
+                   print $0; 
+                }
+             }'
+    done < $INFILE
+}
