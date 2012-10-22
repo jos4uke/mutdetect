@@ -53,7 +53,7 @@ remove_reads_with_more_than_x_independent_events()
     #done < $INFILE
     #IFS=$old
 
-    gawk -v limit=${PARAMETERS_TABLE["nb_of_independent_event"]} 'match($0, /XM:i:([0-9]+).*XO:i:([0-9]+)/, a) {if ((a[1]+a[2])<=limit) {print $0}}' $INFILE
+    gawk -v limit=${PARAMETERS_TABLE["nb_of_independent_event"]} 'match($0, /XM:i:([0-9]+).*XO:i:([0-9]+)/, a) {if ((a[1]+a[2])<=limit) {print $0} else {print $0 > "/dev/stderr"}' $INFILE
 }
 
 #-------------------------------------------------------------
