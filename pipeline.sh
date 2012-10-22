@@ -208,36 +208,58 @@ if [[ ! -e $FILTER_DIR ]]; then
 fi
 
 # Catch the sam file header
+echo "$(date '+%Y%m%d %r') [Filter start] save sam header file" >> $FILTER_DIR/$FILTER_DIR_$DATE.log
+echo "$(date '+%Y%m%d %r') [Filter start] save sam header file" >> $LOG_DIR/$LOGFILE
+
 grep "^@" $MAPPING_DIR/$3.sam > $FILTER_DIR/header.txt
-grep -v "^@" $MAPPING_DIR/$3.sam > $FILTER_DIR/$3_tmp.sam
 
 # Count the initial number of reads in sam file
-echo "$(date '+%Y%m%d %r') [Filter] $3.sam $(wc -l $MAPPING_DIR/$3.sam | awk '{print $1}') " >> $LOG_DIR/$LOGFILE
+echo "$(date '+%Y%m%d %r') [Filter all reads] $3.sam $(grep -v '^@' $MAPPING_DIR/$3.sam | wc -l) " >> $FILTER_DIR/$FILTER_DIR_$DATE.log
+echo "$(date '+%Y%m%d %r') [Filter all reads] $3.sam $(grep -v '^@' $MAPPING_DIR/$3.sam | wc -l}') " >> $LOG_DIR/$LOGFILE
+
+grep -v "^@" $MAPPING_DIR/$3.sam > $FILTER_DIR/$3_tmp.sam
 
 # Remove non aligned reads
 grep -v "*" $FILTER_DIR/$3_tmp.sam > $FILTER_DIR/$3_mapped.sam
 
 # Count the number of aligned reads in sam file
-echo "$(date '+%Y%m%d %r') [Filter] $FILTER_DIR/$3_mapped.sam $(wc -l $FILTER_DIR/$3_mapped.sam | awk '{print $1}') " >> $LOG_DIR/$LOGFILE
-
+echo "$(date '+%Y%m%d %r') [Filter aligned reads] $FILTER_DIR/$3_mapped.sam $(wc -l $FILTER_DIR/$3_mapped.sam | awk '{print $1}') " >> $FILTER_DIR/$FILTER_DIR_$DATE.log
+echo "$(date '+%Y%m%d %r') [Filter aligned reads] $FILTER_DIR/$3_mapped.sam $(wc -l $FILTER_DIR/$3_mapped.sam | awk '{print $1}') " >> $LOG_DIR/$LOGFILE
 
 # FILTRE sur MAPQ
 awk '{if($5<0 || $5>20) print}' $FILTER_DIR/$3_mapped.sam > $FILTER_DIR/$3_mapped_MAPQ.sam
 
-# Count the number of aligned reads in sam file
-echo "$(date '+%Y%m%d %r') [Filter] $FILTER_DIR/$3_mapped_MAPQ.sam $(wc -l $FILTER_DIR/$3_mapped_MAPQ.sam | awk '{print $1-8}') " >> $LOG_DIR/$LOGFILE
+# Count the number of aligned reads in sam file filtered for given MAPQ threshold
+echo "$(date '+%Y%m%d %r') [Filter MAPQ] $FILTER_DIR/$3_mapped_MAPQ.sam $(wc -l $FILTER_DIR/$3_mapped_MAPQ.sam) " >> $FILTER_DIR/$FILTER_DIR_$DATE.log
+echo "$(date '+%Y%m%d %r') [Filter MAPQ] $FILTER_DIR/$3_mapped_MAPQ.sam $(wc -l $FILTER_DIR/$3_mapped_MAPQ.sam) " >> $LOG_DIR/$LOGFILE
 
-exit
+# Remove reads with more than x independant events
+# Filter on XO and XM (6 cases): Xo+Xm <= 2 (default)
+remove_reads_with_more_than_x_independent_event $FILTER_DIR/$3_mapped_MAPQ.sam >$FILTER_DIR/$3_mapped_MAPQ_XOXM.sam 2>$FILTER_DIR/$3_XOXM.excluded
 
-# TODO
-# Remove reads with more than 2 independant events
-# Xo+Xm <= 2
-# Filter on XO and XM (3 cases)
-#TODO: XM=0:XO<=2 ; XM=1:XO<=1; XM=2:XO=0 
-#Filter CIGAR code for I or D < 5 (make it a variable)
-#TODO
-# Add the header à la fin du filtrage
-#
+# Count the number of reads in sam file filtered for given x independent events threshold
+echo "$(date '+%Y%m%d %r') [Filter XOXM independent events] $FILTER_DIR/$3_mapped_MAPQ_XOXM.sam $(wc -l $FILTER_DIR/$3_mapped_MAPQ_XOXM.sam) " >> $FILTER_DIR/$FILTER_DIR_$DATE.log
+echo "$(date '+%Y%m%d %r') [Filter XOXM independent events] $FILTER_DIR/$3_mapped_MAPQ_XOXM.sam $(wc -l $FILTER_DIR/$3_mapped_MAPQ_XOXM.sam) " >> $LOG_DIR/$LOGFILE
+
+echo "$(date '+%Y%m%d %r') [Filter XOXM independent events] $FILTER_DIR/$3_XOXM.excluded $(wc -l $FILTER_DIR/$3_XOXM.excluded) " >> $FILTER_DIR/$FILTER_DIR_$DATE.log
+echo "$(date '+%Y%m%d %r') [Filter XOXM independent events] $FILTER_DIR/$3_XOXM.excluded $(wc -l $FILTER_DIR/$3_XOXM.excluded) " >> $LOG_DIR/$LOGFILE
+
+# Filter CIGAR code for I or D < Y bases threshold (default 5)
+remove_reads_with_indels_size_greater_than_y_bases $FILTER_DIR/$3_mapped_MAPQ_XOXM.sam >$FILTER_DIR/$3_mapped_MAPQ_XOXM_INDELS.sam 2>$FILTER_DIR/$3_INDELS.excluded
+
+# Count the number of reads in sam file filtered for indels greater than given size threshold
+echo "$(date '+%Y%m%d %r') [Filter indels] $FILTER_DIR/$3_mapped_MAPQ_XOXM_INDELS.sam $(wc -l $FILTER_DIR/$3_mapped_MAPQ_XOXM_INDELS.sam) " >> $FILTER_DIR/$FILTER_DIR_$DATE.log
+echo "$(date '+%Y%m%d %r') [Filter indels] $FILTER_DIR/$3_mapped_MAPQ_XOXM_INDELS.sam $(wc -l $FILTER_DIR/$3_mapped_MAPQ_XOXM_INDELS.sam) " >> $LOG_DIR/$LOGFILE
+
+echo "$(date '+%Y%m%d %r') [Filter indels] $FILTER_DIR/$3_INDELS.excluded $(wc -l $FILTER_DIR/$3_INDELS.excluded) " >> $FILTER_DIR/$FILTER_DIR_$DATE.log
+echo "$(date '+%Y%m%d %r') [Filter indels] $FILTER_DIR/$3_INDELS.excluded $(wc -l $FILTER_DIR/$3_INDELS.excluded) " >> $LOG_DIR/$LOGFILE
+
+# Add the header at the end of the filtering
+cat $FILTER_DIR/header.txt $FILTER_DIR/$3_mapped_MAPQ_XOXM_INDELS.sam > tmp.sam
+mv tmp.sam $FILTER_DIR/$3_mapped_MAPQ.sam
+
+echo "$(date '+%Y%m%d %r') [Filter end] Add the header to filtered sam file" >> $FILTER_DIR/$FILTER_DIR_$DATE.log
+echo "$(date '+%Y%m%d %r') [Filter end] Ddd the header to filtered sam file" >> $LOG_DIR/$LOGFILE
 
     # Convert SAM to BAM
 
