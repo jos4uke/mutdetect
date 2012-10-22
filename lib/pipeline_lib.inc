@@ -40,8 +40,8 @@ remove_reads_with_more_than_x_independent_events()
     #old=$IFS
     #IFS=$'\n'
     #for line in $(cat $INFILE)
-    while read line
-    do
+    #while read line
+    #do
 	#XM_XO=$(echo $line | perl -ne 'if ($_=~m/XM:i:(\d+).*XO:i:(\d+)/) {print $1+$2;}')
         #echo -e "XM+XO=$XM_XO" 1>&2
 
@@ -49,9 +49,11 @@ remove_reads_with_more_than_x_independent_events()
 	#     then
 	#     echo $line
 	# fi
-	echo $line | gawk -v limit=${PARAMETERS_TABLE["nb_of_independent_event"]} 'match($0, /XM:i:([0-9]+).*XO:i:([0-9]+)/, a) {if ((a[1]+a[2])<=limit) {print $0}}'
-    done < $INFILE
+	#echo $line | gawk -v limit=${PARAMETERS_TABLE["nb_of_independent_event"]} 'match($0, /XM:i:([0-9]+).*XO:i:([0-9]+)/, a) {if ((a[1]+a[2])<=limit) {print $0}}'
+    #done < $INFILE
     #IFS=$old
+
+    gawk -v limit=${PARAMETERS_TABLE["nb_of_independent_event"]} 'match($0, /XM:i:([0-9]+).*XO:i:([0-9]+)/, a) {if ((a[1]+a[2])<=limit) {print $0}}' $INFILE
 }
 
 #-------------------------------------------------------------
@@ -60,11 +62,12 @@ remove_reads_with_more_than_x_independent_events()
 remove_reads_with_indels_size_greater_than_y_bases()
 {
     INFILE=$1
-    while read line 
-    do
+    #while read line 
+    #do
 	# find a way to return all occurences of the pattern in CIGAR code
 	# echo '10M5I5D8M3I7M' | gawk 'function findall(str, re) { while(match(str, re, a)) {sub("I", "", a[0]); print a[0]; str = substr(str, RSTART+RLENGTH)} } { findall($0, "([0-9]+)I"); }'
-	echo $line | gawk -v limit=${PARAMETERS_TABLE["microindel_size"]} \
+	#echo $line | 
+    gawk -v limit=${PARAMETERS_TABLE["microindel_size"]} \
 	    'function findAllIndelsSize(str, lim)
              {
                 flag=0;
@@ -101,6 +104,6 @@ remove_reads_with_indels_size_greater_than_y_bases()
                 {
                    print $0; 
                 }
-             }'
-    done < $INFILE
+             }' $INFILE
+    #done < $INFILE
 }
