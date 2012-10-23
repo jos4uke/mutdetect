@@ -20,9 +20,14 @@ LOG_DIR="log"
 TRIMMING_DIR="01_Trimming"
 MAPPING_DIR="02_Mapping"
 FILTER_DIR="03_Filter"
+ANALYSIS_DIR="04_Analysis"
+
 
 TRIMMING_TMP=$TRIMMING_DIR/tmp
 MAPPING_TMP=$MAPPING_DIR/tmp
+FILTER_TMP=$FILTER_DIR/tmp
+ANALYSIS_TMP=$ANALYSIS_DIR/tmp
+
 
 # DECLARE GLOBAL VARIABLE
 declare -A PARAMETERS_TABLE
@@ -179,9 +184,9 @@ fi
 if [[ -e $MAPPING_DIR/$3_1.sai && -e $MAPPING_DIR/$3_2.sai ]]; then
     echo "# $(date '+%Y%m%d %r') [bwa sampe] .sai Files exist ! Run bwa sampe ..." >> $LOG_DIR/$LOGFILE
     bwa sampe \
-	-n ${PARAMETERS_TABLE["bwa_sampe_n"]} \
-	-N ${PARAMETERS_TABLE["bwa_sampe_N"]} \
-	${PARAMETERS_TABLE["BWA_REFERENCE_GENOME_INDEX"]} $MAPPING_DIR/$3_1.sai $MAPPING_DIR/$3_2.sai $TRIMMING_DIR/$3_1_paired.fq $TRIMMING_DIR/$3_2_paired.fq > $MAPPING_DIR/$3.sam 2>$MAPPING_TMP\_2
+	-n "${PARAMETERS_TABLE['bwa_sampe_n']}" \
+	-N "${PARAMETERS_TABLE['bwa_sampe_N']}" \
+	${PARAMETERS_TABLE["BWA_REFERENCE_GENOME_INDEX"]} $MAPPING_DIR/$3_1.sai $MAPPING_DIR/$3_2.sai $TRIMMING_DIR/$3_1_paired.fq $TRIMMING_DIR/$3_2_paired.fq >$MAPPING_DIR/$3.sam 2>$MAPPING_TMP\_2
 else
     echo ".sai files do not exists"
     exit $?
@@ -212,12 +217,11 @@ echo "$(date '+%Y%m%d %r') [Filter start] save sam header file" >> $FILTER_DIR/$
 echo "$(date '+%Y%m%d %r') [Filter start] save sam header file" >> $LOG_DIR/$LOGFILE
 
 grep "^@" $MAPPING_DIR/$3.sam > $FILTER_DIR/header.txt
+grep -v "^@" $MAPPING_DIR/$3.sam > $FILTER_DIR/$3_tmp.sam
 
 # Count the initial number of reads in sam file
-echo "$(date '+%Y%m%d %r') [Filter all reads] $3.sam $(grep -v '^@' $MAPPING_DIR/$3.sam | wc -l) " >> $FILTER_DIR/$FILTER_DIR_$DATE.log
-echo "$(date '+%Y%m%d %r') [Filter all reads] $3.sam $(grep -v '^@' $MAPPING_DIR/$3.sam | wc -l}') " >> $LOG_DIR/$LOGFILE
-
-grep -v "^@" $MAPPING_DIR/$3.sam > $FILTER_DIR/$3_tmp.sam
+echo "$(date '+%Y%m%d %r') [Filter all reads] $3.sam $(wc -l $FILTER_DIR/$3_tmp.sam | wc -l) " >> $FILTER_DIR/$FILTER_DIR_$DATE.log
+echo "$(date '+%Y%m%d %r') [Filter all reads] $3.sam $(wc -l $FILTER_DIR/$3_tmp.sam | wc -l) " >> $LOG_DIR/$LOGFILE
 
 # Remove non aligned reads
 grep -v "*" $FILTER_DIR/$3_tmp.sam > $FILTER_DIR/$3_mapped.sam
@@ -227,73 +231,151 @@ echo "$(date '+%Y%m%d %r') [Filter aligned reads] $FILTER_DIR/$3_mapped.sam $(wc
 echo "$(date '+%Y%m%d %r') [Filter aligned reads] $FILTER_DIR/$3_mapped.sam $(wc -l $FILTER_DIR/$3_mapped.sam | awk '{print $1}') " >> $LOG_DIR/$LOGFILE
 
 # FILTRE sur MAPQ
-awk '{if($5<0 || $5>20) print}' $FILTER_DIR/$3_mapped.sam > $FILTER_DIR/$3_mapped_MAPQ.sam
+awk '{if($5==0 || $5>=20) print}' $FILTER_DIR/$3_mapped.sam > $FILTER_DIR/$3_mapped_MAPQ.sam
 
 # Count the number of aligned reads in sam file filtered for given MAPQ threshold
 echo "$(date '+%Y%m%d %r') [Filter MAPQ] $FILTER_DIR/$3_mapped_MAPQ.sam $(wc -l $FILTER_DIR/$3_mapped_MAPQ.sam) " >> $FILTER_DIR/$FILTER_DIR_$DATE.log
 echo "$(date '+%Y%m%d %r') [Filter MAPQ] $FILTER_DIR/$3_mapped_MAPQ.sam $(wc -l $FILTER_DIR/$3_mapped_MAPQ.sam) " >> $LOG_DIR/$LOGFILE
 
-# Remove reads with more than x independant events
-# Filter on XO and XM (6 cases): Xo+Xm <= 2 (default)
-remove_reads_with_more_than_x_independent_event $FILTER_DIR/$3_mapped_MAPQ.sam >$FILTER_DIR/$3_mapped_MAPQ_XOXM.sam 2>$FILTER_DIR/$3_XOXM.excluded
+# Remove reads with more than x independent events
+# Filter on XO and XM (6 cases): Xo+Xm <= 2 (default in ${PARAMETERS_TABLE["nb_of_independent_event"]})
+remove_reads_with_more_than_x_independent_events 2 $FILTER_DIR/$3_mapped_MAPQ.sam >$FILTER_DIR/$3_mapped_MAPQ_XOXM.sam 2>$FILTER_DIR/$3_XOXM.excluded
 
 # Count the number of reads in sam file filtered for given x independent events threshold
-echo "$(date '+%Y%m%d %r') [Filter XOXM independent events] $FILTER_DIR/$3_mapped_MAPQ_XOXM.sam $(wc -l $FILTER_DIR/$3_mapped_MAPQ_XOXM.sam) " >> $FILTER_DIR/$FILTER_DIR_$DATE.log
-echo "$(date '+%Y%m%d %r') [Filter XOXM independent events] $FILTER_DIR/$3_mapped_MAPQ_XOXM.sam $(wc -l $FILTER_DIR/$3_mapped_MAPQ_XOXM.sam) " >> $LOG_DIR/$LOGFILE
+echo "$(date '+%Y%m%d %r') [Filter XOXM independent events] $FILTER_DIR/$3_mapped_MAPQ_XOXM.sam $(wc -l $FILTER_DIR/$3_mapped_MAPQ_XOXM.sam | awk '{print $1}') " >> $FILTER_DIR/$FILTER_DIR_$DATE.log
+echo "$(date '+%Y%m%d %r') [Filter XOXM independent events] $FILTER_DIR/$3_mapped_MAPQ_XOXM.sam $(wc -l $FILTER_DIR/$3_mapped_MAPQ_XOXM.sam | awk '{print $1}') " >> $LOG_DIR/$LOGFILE
 
-echo "$(date '+%Y%m%d %r') [Filter XOXM independent events] $FILTER_DIR/$3_XOXM.excluded $(wc -l $FILTER_DIR/$3_XOXM.excluded) " >> $FILTER_DIR/$FILTER_DIR_$DATE.log
-echo "$(date '+%Y%m%d %r') [Filter XOXM independent events] $FILTER_DIR/$3_XOXM.excluded $(wc -l $FILTER_DIR/$3_XOXM.excluded) " >> $LOG_DIR/$LOGFILE
+echo "$(date '+%Y%m%d %r') [Filter XOXM independent events] $FILTER_DIR/$3_XOXM.excluded $(wc -l $FILTER_DIR/$3_XOXM.excluded | awk '{print $1}') " >> $FILTER_DIR/$FILTER_DIR_$DATE.log
+echo "$(date '+%Y%m%d %r') [Filter XOXM independent events] $FILTER_DIR/$3_XOXM.excluded $(wc -l $FILTER_DIR/$3_XOXM.excluded | awk '{print $1}') " >> $LOG_DIR/$LOGFILE
 
 # Filter CIGAR code for I or D < Y bases threshold (default 5)
-remove_reads_with_indels_size_greater_than_y_bases $FILTER_DIR/$3_mapped_MAPQ_XOXM.sam >$FILTER_DIR/$3_mapped_MAPQ_XOXM_INDELS.sam 2>$FILTER_DIR/$3_INDELS.excluded
+remove_reads_with_indels_size_greater_than_y_bases ${PARAMETERS_TABLE["microindel_size"]} $FILTER_DIR/$3_mapped_MAPQ_XOXM.sam >$FILTER_DIR/$3_mapped_MAPQ_XOXM_INDELS.sam 2>$FILTER_DIR/$3_INDELS.excluded
 
 # Count the number of reads in sam file filtered for indels greater than given size threshold
-echo "$(date '+%Y%m%d %r') [Filter indels] $FILTER_DIR/$3_mapped_MAPQ_XOXM_INDELS.sam $(wc -l $FILTER_DIR/$3_mapped_MAPQ_XOXM_INDELS.sam) " >> $FILTER_DIR/$FILTER_DIR_$DATE.log
-echo "$(date '+%Y%m%d %r') [Filter indels] $FILTER_DIR/$3_mapped_MAPQ_XOXM_INDELS.sam $(wc -l $FILTER_DIR/$3_mapped_MAPQ_XOXM_INDELS.sam) " >> $LOG_DIR/$LOGFILE
+echo "$(date '+%Y%m%d %r') [Filter indels] $FILTER_DIR/$3_mapped_MAPQ_XOXM_INDELS.sam $(wc -l $FILTER_DIR/$3_mapped_MAPQ_XOXM_INDELS.sam | awk '{print $1}') " >> $FILTER_DIR/$FILTER_DIR_$DATE.log
+echo "$(date '+%Y%m%d %r') [Filter indels] $FILTER_DIR/$3_mapped_MAPQ_XOXM_INDELS.sam $(wc -l $FILTER_DIR/$3_mapped_MAPQ_XOXM_INDELS.sam | awk '{print $1}') " >> $LOG_DIR/$LOGFILE
 
-echo "$(date '+%Y%m%d %r') [Filter indels] $FILTER_DIR/$3_INDELS.excluded $(wc -l $FILTER_DIR/$3_INDELS.excluded) " >> $FILTER_DIR/$FILTER_DIR_$DATE.log
-echo "$(date '+%Y%m%d %r') [Filter indels] $FILTER_DIR/$3_INDELS.excluded $(wc -l $FILTER_DIR/$3_INDELS.excluded) " >> $LOG_DIR/$LOGFILE
+echo "$(date '+%Y%m%d %r') [Filter indels] $FILTER_DIR/$3_INDELS.excluded $(wc -l $FILTER_DIR/$3_INDELS.excluded | awk '{print $1}') " >> $FILTER_DIR/$FILTER_DIR_$DATE.log
+echo "$(date '+%Y%m%d %r') [Filter indels] $FILTER_DIR/$3_INDELS.excluded $(wc -l $FILTER_DIR/$3_INDELS.excluded | awk '{print $1}') " >> $LOG_DIR/$LOGFILE
 
 # Add the header at the end of the filtering
 cat $FILTER_DIR/header.txt $FILTER_DIR/$3_mapped_MAPQ_XOXM_INDELS.sam > tmp.sam
 mv tmp.sam $FILTER_DIR/$3_mapped_MAPQ.sam
 
 echo "$(date '+%Y%m%d %r') [Filter end] Add the header to filtered sam file" >> $FILTER_DIR/$FILTER_DIR_$DATE.log
-echo "$(date '+%Y%m%d %r') [Filter end] Ddd the header to filtered sam file" >> $LOG_DIR/$LOGFILE
+echo "$(date '+%Y%m%d %r') [Filter end] Add the header to filtered sam file" >> $LOG_DIR/$LOGFILE
 
     # Convert SAM to BAM
-
-#samtools view -bS  $3_mapped_NM2_BH_MAPQ.sam > $3.bam
+if [[ -e $FILTER_DIR/$3_mapped_MAPQ.sam ]]; then
+    echo "# sam file exists ! Start to convert sam to bam ..." >> $LOG_DIR/$LOGFILE
+    samtools view -bS  $FILTER_DIR/$3_mapped_MAPQ.sam > $FILTER_DIR/$3.bam 2>$FILTER_TMP\_1
+    echo "$(date '+%Y%m%d %r') [Filter: Convert sam to bam] $FILTER_DIR/$3.bam" >> $LOG_DIR/$LOGFILE
+    cat $FILTER_TMP\_1 >> $FILTER_DIR/$FILTER_DIR_$DATE.log
+else
+    echo "SAM file does not exist"
+    exit $?
+fi
 
     # SORT BAM
-
-#samtools sort $3.bam $3_sorted
+if [[ -e $FILTER_DIR/$3.bam ]]; then
+    echo "# bam file exists ! Start to sort bam file ..." >> $LOG_DIR/$LOGFILE
+    samtools sort $FILTER_DIR/$3.bam $FILTER_DIR/$3_sorted 2>$FILTER_TMP\_2
+    echo "$(date '+%Y%m%d %r') [Filter: Sorted bam] $FILTER_DIR/$3_sorted.bam" >> $LOG_DIR/$LOGFILE
+    cat $FILTER_TMP\_2 >> $FILTER_DIR/$FILTER_DIR_$DATE.log
+else
+    echo "BAM file does not exist"
+    exit $?
+fi
 
     # INDEX BAM
+if [[ -e $FILTER_DIR/$3_sorted.bam ]]; then
+    echo "# Sorted bam file exists ! Start to index the file ..." >> $LOG_DIR/$LOGFILE
+    samtools index $FILTER_DIR/$3_sorted.bam 2>$FILTER_TMP\_3
+    # TO DO TEST $?
+    echo "$(date '+%Y%m%d %r') [Filter: Indexed and sorted bam] $FILTER_DIR/$3_sorted.bam.bai" >> $LOG_DIR/$LOGFILE
+    cat $FILTER_TMP\_3 >> $FILTER_DIR/$FILTER_DIR_$DATE.log
+else
+    echo "Sorted bam file does not exist"
+    exit $?
+fi
 
-#samtools index $3_sorted.bam
+########################
+# Section Analysis
+########################
 
-    # GENERATE BCF (PER SITE INFOS)
-    
-#samtools faidx $GENOME_FASTA
-    
-#samtools mpileup -B -Q 20 -u -f $GENOME_FASTA $3_sorted.bam > $3.bcf
-    
+if [[ ! -e $ANALYSIS_DIR ]]; then
+    mkdir $ANALYSIS_DIR 
+fi
+
+    # GENERATE BCF (PER SITE DEPTH, INFOS)
+
+if [[ -e $FILTER_DIR/$3_sorted.bam ]]; then
+    echo "# Sorted bam file exists ! Start to index fasta genome and compute ber base depth ..." >> $LOG_DIR/$LOGFILE    
+    #samtools faidx ${PARAMETERS_TABLE["REFERENCE_GENOME_FASTA"]} 2>$ANALYSIS_TMP\_1
+    # This step will be done one time
+    samtools mpileup -B -Q 20 -u -f ${PARAMETERS_TABLE["REFERENCE_GENOME_FASTA"]} $FILTER_DIR/$3_sorted.bam > $ANALYSIS_DIR/$3.bcf 2>$ANALYSIS_TMP\_2
+    # TODO mpileup parameters
+    #echo "$(date '+%Y%m%d %r') [Analysis: faidx]">> $LOG_DIR/$LOGFILE
+    #cat $ANALYSIS_TMP\_1 >> $LOG_DIR/$LOGFILE
+    echo "$(date '+%Y%m%d %r') [Analysis: mpileup] $3.bcf" >> $LOG_DIR/$LOGFILE
+    cat $ANALYSIS_TMP\_2 >> $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log
+else
+    echo "Sorted bam file does not exist"
+    exit $?
+fi
+
     # VARIANT CALLING
 
-#bcftools view -cvg $3.bcf > $3.vcf
+if [[ -e $ANALYSIS_DIR/$3.bcf ]]; then
+    echo "# bcf file exists ! Start to call variant" >> $LOG_DIR/$LOGFILE   
+    bcftools view -cvg $ANALYSIS_DIR/$3.bcf > $ANALYSIS_DIR/$3.vcf 2>$ANALYSIS_TMP\_3
+    echo "$(date '+%Y%m%d %r') [Analysis: bcftools view] $3.vcf">> $LOG_DIR/$LOGFILE
+    cat $ANALYSIS_TMP\_3 >> $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log
+else
+    echo "BCF file does not exist"
+    exit $?
+fi
 
     # VARIANT FILTERING
+# TO DO (R)    
+# vcfutils.pl varFilter $3.vcf > $3_filtre.vcf
     
-#    vcfutils.pl varFilter $3.vcf > $3_filtre.vcf
-    
-    # COMPRESS VCF 
+    # COMPRESS and INDEX VCF file 
 
-#    bgzip $3_filtre.vcf
-
-#    tabix -p vcf $3_filtre.vcf.gz
-    
+if [[ -e $ANALYSIS_DIR/$3.vcf ]]; then
+    echo "# vcf file exists ! Start to compress it ..." >> $LOG_DIR/$LOGFILE   
+    bgzip -fc $ANALYSIS_DIR/$3.vcf > $ANALYSIS_DIR/$3.vcf.gz
+    # TO DO Standard error
+    echo "$(date '+%Y%m%d %r') [Analysis: Compress vcf] $3.vcf.gz">> $LOG_DIR/$LOGFILE
+    tabix -p vcf -f $ANALYSIS_DIR/$3.vcf.gz
+    # TO DO Standard error
+    echo "$(date '+%Y%m%d %r') [Analysis: tabix (Index compressed vcf)] $3.vcf.gz">> $LOG_DIR/$LOGFILE
+else
+    echo "VCF file does not exist"
+    exit $?
+fi  
+ 
     # SNP EFFECT PREDICTION
 
-#    java -jar snpEff.jar athaliana130 $3_filtre.vcf > $3_filtre_snpeff.txt
-#fi
+ echo "# Start snpEff ..." >> $LOG_DIR/$LOGFILE   
+
+java -jar ${PARAMETERS_TABLE["SNPEFF_PATH"]}/snpEff.jar ${PARAMETERS_TABLE["snpeff_data"]} \
+    -c ${PARAMETERS_TABLE["SNPEFF_PATH"]}/snpEff.config \
+    -i ${PARAMETERS_TABLE["snpeff_inFile_format"]} \
+    -o VCF $ANALYSIS_DIR/$3.vcf > $ANALYSIS_DIR/$3_snpeff.txt 2>$ANALYSIS_TMP\_4
+
+echo "$(date '+%Y%m%d %r') [Analysis: snpeff]">> $LOG_DIR/$LOGFILE
+mv snpEff_* $ANALYSIS_DIR/.
+cat $ANALYSIS_TMP\_4 >> $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log
+
+
+#####################
+# CLEANING
+####################
+
+
+
+
+####################
+# Run Pipeline.Rnw
+###################
