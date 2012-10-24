@@ -3,6 +3,14 @@
 # Equipe Dev 
 # Script provisoire pour la détection de mutation 
 
+# TODO: 
+# for all commands, get the exit status code and if different of 0, exits the pipeline with error message; update functions to exit with error code
+# for all file tests, add test to check if file is empty, then exits the pipeline with error message
+
+########################
+# SECTION CONFIGURATION
+#######################
+
 # Inclusion de la librairie de fonctions
 
 PREFIX="/projects/ARABIDOPSIS/SCRIPTS/PIPELINE"
@@ -15,6 +23,7 @@ DATE=$(date '+%Y_%m_%d_%H_%M')
 LOGFILE=$3_$DATE\_log.txt
 WORKING_DIR=$(pwd)
 PIPELINE_DEFAULT_CONFIG="/projects/ARABIDOPSIS/SCRIPTS/PIPELINE/pipeline_default.config"
+PIPELINE_USER_CONFIG="/projects/ARABIDOPSIS/SCRIPTS/PIPELINE/pipeline_default.config" # should be in $WORKING_DIR by default
 
 LOG_DIR="log"
 TRIMMING_DIR="01_Trimming"
@@ -22,14 +31,15 @@ MAPPING_DIR="02_Mapping"
 FILTER_DIR="03_Filter"
 ANALYSIS_DIR="04_Analysis"
 
-
 TRIMMING_TMP=$TRIMMING_DIR/tmp
 MAPPING_TMP=$MAPPING_DIR/tmp
 FILTER_TMP=$FILTER_DIR/tmp
 ANALYSIS_TMP=$ANALYSIS_DIR/tmp
 
+ERROR_TMP="/tmp/tmp_pipeline_error_$USER_$DATE.log"
 
 # DECLARE GLOBAL VARIABLE
+
 declare -A PARAMETERS_TABLE
 
 # TEST if enough args
@@ -37,38 +47,97 @@ declare -A PARAMETERS_TABLE
 if [ $# -ne "$ARGS" ]
 then
   echo "Usage: `$0` SEQfile1 SEQfile2 ECHname"
-  exit $?
+  exit 0
+fi
+
+# Create log directory
+
+if [[ -d $LOG_DIR ]]; then
+    echo "$(date '+%Y%m%d %r') [Log directory] OK $LOG_DIR directory already exists. Will write log files in this directory." >> $LOG_DIR/$LOGFILE
+else
+    mkdir $LOG_DIR 2>$ERROR_TMP
+    if [[ $? -ne 0 ]]; then
+	echo "$(date '+%Y%m%d %r') [Log directory] Failed Log directory, $LOG_DIR, was not created. An error occurs: $(cat $ERROR_TMP)" >> $LOG_DIR/$LOGFILE
+	echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code 126." >> $LOG_DIR/$LOGFILE
+	exit 126
+    else
+	echo "$(date '+%Y%m%d %r') [Log directory] OK $LOG_DIR directory was created sucessfully. Will write log files in this directory." >> $LOG_DIR/$LOGFILE	
+    fi
 fi
 
 # TEST if files exist 
 
-if [[ -e $1 || -e $2 ]]; then
-	echo "# $(date '+%Y%m%d %r') Input Files exists ! Let's check sequences quality ..." >> $LOG_DIR/$LOGFILE
-	#tmp=${1%\.*};
-	#FASTQ1_NAME=${tmp##*/}
-	#tmp=${2%\.*};
-	#FASTQ2_NAME=${tmp##*/}
-else 
-	echo "File does not exist"
-	exit $?
-fi 
+if [[ -e $1 && -s $1 ]]; then
+    if [[ -e $2 && -s $2 ]]; then
+	echo "$(date '+%Y%m%d %r') [fastq input files] OK Input files exists and are not empty." >> $LOG_DIR/$LOGFILE
+    else 
+	echo "$(date '+%Y%m%d %r') [fastq input files] Failed Input file, $1, does not exist or is empty" >> $LOG_DIR/$LOGFILE
+	echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code 3." >> $LOG_DIR/$LOGFILE
+	exit 3 
+    fi 
+else
+    echo "$(date '+%Y%m%d %r') [fastq input files] Failed Input file, $2, does not exist or is empty" >> $LOG_DIR/$LOGFILE
+    echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code 3." >> $LOG_DIR/$LOGFILE
+    exit 3 
+fi
 
-# TODO TEST if the fastq files have the same number of reads
-# if it is not the case exit 
+# TEST if the fastq files have the same number of reads
+# else exit (error code 4) 
 
+if (( $(wc -l $1 | awk 'print $1') == $(wc -l $2 | awk 'print $1') )); then
+    echo "$(date '+%Y%m%d %r') [fastq input files] OK Input files have the same number of reads." >> $LOG_DIR/$LOGFILE
+else
+    echo "$(date '+%Y%m%d %r') [fastq input files] Failed Input files do not have the same number of reads!" >> $LOG_DIR/$LOGFILE
+fi
 
 # TEST if pipeline_default.config exists and put the parameters into a hash table
 
 if [[ -e $PIPELINE_DEFAULT_CONFIG ]]; then
-	echo "# $(date '+%Y%m%d %r') [get_pipeline_default_parameters] default config file exists ! Let's check parameters validity ..." >> $LOG_DIR/$LOGFILE
-	get_pipeline_default_parameters $PIPELINE_DEFAULT_CONFIG
+    echo "$(date '+%Y%m%d %r') [get_pipeline_default_parameters] OK $PIPELINE_DEFAULT_CONFIG default config file exists! Let's check parameters validity ..." >> $LOG_DIR/$LOGFILE
+    get_pipeline_default_parameters $PIPELINE_DEFAULT_CONFIG 2>$ERROR_TMP
+    rtrn=$?
+    if [[ $rtrn -ne 0 ]]; then
+	echo "$(date '+%Y%m%d %r') [get_pipeline_default_parameters] Failed Default parameters were not loaded. An error occurs: $(cat $ERROR_TMP)" >> $LOG_DIR/$LOGFILE
+	echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code $rtrn." >> $LOG_DIR/$LOGFILE
+	exit $rtrn
+    else
+	echo "$(date '+%Y%m%d %r') [get_pipeline_default_parameters] OK Default config parameters were loaded successfully." >> $LOG_DIR/$LOGFILE
+    fi
 else 
-	echo "File does not exist"
-	exit $?
+    echo "$(date '+%Y%m%d %r') [get_pipeline_default_parameters] Failed $PIPELINE_DEFAULT_CONFIG file does not exist." >> $LOG_DIR/$LOGFILE
+    echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code 3." >> $LOG_DIR/$LOGFILE
+    exit 3
 fi 
+
+# TEST if pipeline_user.config exists and then override default parameters if user defined parameters exist
+
+if [[ -e $PIPELINE_USER_CONFIG ]]; then
+    echo "$(date '+%Y%m%d %r') [get_pipeline_user_parameters] OK $PIPELINE_USER_CONFIG user config file exists! Let's check parameters validity ..." >> $LOG_DIR/$LOGFILE
+    get_pipeline_user_parameters $PIPELINE_USER_CONFIG 2>$ERROR_TMP
+    rtrn=$?
+    if [[ $rtrn -ne 0 ]]; then
+	echo "$(date '+%Y%m%d %r') [get_pipeline_user_parameters] Failed User parameters were not loaded. An error occurs: $(cat $ERROR_TMP)" >> $LOG_DIR/$LOGFILE
+	echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code $rtrn." >> $LOG_DIR/$LOGFILE
+	exit $rtrn
+    else
+	echo "$(date '+%Y%m%d %r') [get_pipeline_user_parameters] OK User config parameters were loaded successfully." >> $LOG_DIR/$LOGFILE
+    fi
+else 
+    echo "$(date '+%Y%m%d %r') [get_pipeline_user_parameters] Failed $PIPELINE_USER_CONFIG file does not exist." >> $LOG_DIR/$LOGFILE
+    echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code 3." >> $LOG_DIR/$LOGFILE
+    exit 3
+fi
 
 # Report parameters in LOGFILE
 
+echo "$(date '+%Y%m%d %r') [parameters listing] OK All pipeline config parameters were loaded and checked successfully." >> $LOG_DIR/$LOGFILE
+for i in "${!PARAMETERS_TABLE[@]}"
+do
+    echo -e "$i=${PARAMETERS_TABLE[$i]}" >> $LOG_DIR/$LOGFILE
+done
+if [[ -s $ERROR_TMP ]]; then
+    cat $ERROR_TMP >> $LOG_DIR/$LOGFILE
+fi
 
 ########################
 # SECTION TRIMMING
