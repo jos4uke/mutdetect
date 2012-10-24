@@ -234,8 +234,8 @@ echo "$(date '+%Y%m%d %r') [Filter aligned reads] $FILTER_DIR/$3_mapped.sam $(wc
 awk '{if($5==0 || $5>=20) print}' $FILTER_DIR/$3_mapped.sam > $FILTER_DIR/$3_mapped_MAPQ.sam
 
 # Count the number of aligned reads in sam file filtered for given MAPQ threshold
-echo "$(date '+%Y%m%d %r') [Filter MAPQ] $FILTER_DIR/$3_mapped_MAPQ.sam $(wc -l $FILTER_DIR/$3_mapped_MAPQ.sam) " >> $FILTER_DIR/$FILTER_DIR_$DATE.log
-echo "$(date '+%Y%m%d %r') [Filter MAPQ] $FILTER_DIR/$3_mapped_MAPQ.sam $(wc -l $FILTER_DIR/$3_mapped_MAPQ.sam) " >> $LOG_DIR/$LOGFILE
+echo "$(date '+%Y%m%d %r') [Filter MAPQ] $FILTER_DIR/$3_mapped_MAPQ.sam $(wc -l $FILTER_DIR/$3_mapped_MAPQ.sam | awk '{print $1}') " >> $FILTER_DIR/$FILTER_DIR_$DATE.log
+echo "$(date '+%Y%m%d %r') [Filter MAPQ] $FILTER_DIR/$3_mapped_MAPQ.sam $(wc -l $FILTER_DIR/$3_mapped_MAPQ.sam | awk '{print $1}') " >> $LOG_DIR/$LOGFILE
 
 # Remove reads with more than x independent events
 # Filter on XO and XM (6 cases): Xo+Xm <= 2 (default in ${PARAMETERS_TABLE["nb_of_independent_event"]})
