@@ -15,22 +15,83 @@ get_pipeline_default_parameters()
     # 	PARAMETERS_TABLE[p_array[1]]=p_array[2]
     # 	echo -e "$p_array[1] \t $p_array[2]"
     # done 
+    
+    let count=0
+    rtrn=0
+
     while read line
     do
-	key=$(echo "$line" | awk -F"=" '{print $1}');
-	if [[ ${key} =~ "#" || -z ${key} ]]
+	let count++
+	key=$(echo $line | awk -F"=" '{print $1}');
+	rtrn=$?
+	if [[ $rtrn -ne 0 ]]; then
+	    echo -e "$(date '+%Y%m%d %r') [$0] Failed Error parsing parameter key at line $count." >&2
+	    return $rtrn
+	else
+	    if [[ ${key} =~ "#" || -z ${key} ]]
 	    then
-	    continue
+		continue
 	    else
-	    value=$(echo "$line" | awk -F"=" '{print $2;}')
-	    PARAMETERS_TABLE[${key}]=${value}
-	    #echo -e "$key\t$value"
-	    #echo -e "$key\t${PARAMETERS_TABLE[${key}]}"
-
-	fi    
+		value=$(echo $line | awk -F"=" '{print $2;}')
+		rtrn=$?
+		if [[ $rtrn -ne 0 ]]; then
+		    echo -e "$(date '+%Y%m%d %r') [$0] Failed Error parsing parameter value at line $count." >&2
+		    return $rtrn
+		else
+		    PARAMETERS_TABLE[${key}]=${value}
+	            #echo -e "$key\t$value"
+	            #echo -e "$key\t${PARAMETERS_TABLE[${key}]}"
+		fi
+	    fi  
+	fi
     done < $INFILE
 
 # TODO Check parameters interval and parameters type, if problems exit
+    return $?
+}
+
+#---------------------------------------
+# get_pipeline_user_parameters function
+# 
+get_pipeline_user_parameters()
+{
+    INFILE=$1
+
+    let count=0
+    rtrn=0
+
+    while read line
+    do
+	let count++
+	key=$(echo $line | awk -F"=" '{print $1}');
+	rtrn=$?
+	if [[ $rtrn -ne 0 ]]; then
+	    echo -e "$(date '+%Y%m%d %r') [$0] Failed Error parsing parameter key at line $count." >&2
+	    return $rtrn
+	else
+	    if [[ ${key} =~ "#" || -z ${key} ]]
+	    then
+		continue
+	    else
+		value=$(echo $line | awk -F"=" '{print $2;}')
+		rtrn=$?
+		if [[ $rtrn -ne 0 ]]; then
+		    echo -e "$(date '+%Y%m%d %r') [$0] Failed Error parsing parameter value at line $count." >&2
+		    return $rtrn
+		else
+		    if [[ -n ${PARAMETERS_TABLE[${key}]} ]]; then 
+			echo -e "$(date '+%Y%m%d %r') [$0] OK Override ${key} parameter default value: ${PARAMETERS_TABLE[${key}]} by user defined value: ${value}" >&2
+		    fi
+		    PARAMETERS_TABLE[${key}]=${value}
+	            #echo -e "$key\t$value"
+	            #echo -e "$key\t${PARAMETERS_TABLE[${key}]}"
+		fi
+	    fi  
+	fi
+    done < $INFILE
+
+# TODO Check parameters interval and parameters type, if problems exit
+    return $?
 }
 
 #-----------------------------------------------------------
@@ -56,7 +117,7 @@ remove_reads_with_more_than_x_independent_events()
     #done < $INFILE
     #IFS=$old
 
-    gawk -v limit="${LIMIT}" 'match($0, /XM:i:([0-9]+).*XO:i:([0-9]+)/, a) {if ((a[1]+a[2])<=limit) {print $0} else {print $0 > "/dev/stderr"}}' $INFILE
+    gawk -v limit="${LIMIT}" 'match($0, /XM:i:([0-9]+).*XO:i:([0-9]+)|XO:i:([0-9]+).*XM:i:([0-9]+)/, a) {if ((a[1]+a[2])<=limit) {print $0} else {print $0 > "/dev/stderr"}}' $INFILE
 }
 
 #-------------------------------------------------------------
