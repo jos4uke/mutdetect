@@ -86,7 +86,7 @@ fi
 # TEST if the fastq files have the same number of reads
 # else exit (error code 4) 
 
-if (( $(wc -l $1 | awk 'print $1') == $(wc -l $2 | awk 'print $1') )); then
+if (( $(wc -l $1 | awk '{print $1}') == $(wc -l $2 | awk '{print $1}') )); then
     echo "$(date '+%Y%m%d %r') [fastq input files] OK Input files have the same number of reads." >> $LOG_DIR/$LOGFILE
 else
     echo "$(date '+%Y%m%d %r') [fastq input files] Failed Input files do not have the same number of reads!" >> $LOG_DIR/$LOGFILE
