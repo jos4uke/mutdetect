@@ -110,3 +110,16 @@ remove_reads_with_indels_size_greater_than_y_bases()
              }' $INFILE
     #done < $INFILE
 }
+
+
+#-----------------------------------------------------------
+# write formatted file for trimming details subsection
+#
+rnw_trimming_details_subsection()
+{
+    echo "Input read pairs" $(grep "Input Read" $LOG_DIR/$LOGFILE |awk '{print "\t"$4*2}') >> $REPORT_DIR/$FORMATTED_LOG_DIR/trimming_details.txt
+	echo "Both surviving" $(grep "Input Read" $LOG_DIR/$LOGFILE | awk '{print "\t"$7"\t"$8}') >> $REPORT_DIR/$FORMATTED_LOG_DIR/trimming_details.txt
+	echo "Forward only surviving" $(grep "Input Read" $LOG_DIR/$LOGFILE | awk '{print "\t"$12"\t"$13}') >> $REPORT_DIR/$FORMATTED_LOG_DIR/trimming_details.txt
+	echo "Reverse Oonly surviving"  $(grep "Input Read" $LOG_DIR/$LOGFILE | awk '{print "\t"$17"\t"$18}') >> $REPORT_DIR/$FORMATTED_LOG_DIR/trimming_details.txt
+	echo "Read pairs dropped" $(grep "Input Read" $LOG_DIR/$LOGFILE | awk '{print "\t"$20"\t"$21}') >> $REPORT_DIR/$FORMATTED_LOG_DIR/trimming_details.txt
+}

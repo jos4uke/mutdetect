@@ -5,7 +5,8 @@
 
 # Inclusion de la librairie de fonctions
 
-PREFIX="/projects/ARABIDOPSIS/SCRIPTS/PIPELINE"
+#PREFIX="/projects/ARABIDOPSIS/SCRIPTS/PIPELINE"
+PREFIX="/home/ldap/users/fgranier/projects/mon-pipeline"
 . $PREFIX/lib/pipeline_lib.inc
 
 # Positionnement des variables
@@ -21,7 +22,8 @@ TRIMMING_DIR="01_Trimming"
 MAPPING_DIR="02_Mapping"
 FILTER_DIR="03_Filter"
 ANALYSIS_DIR="04_Analysis"
-
+REPORT_DIR="report"
+FORMATTED_LOG_DIR="formatted_log"
 
 TRIMMING_TMP=$TRIMMING_DIR/tmp
 MAPPING_TMP=$MAPPING_DIR/tmp
@@ -379,3 +381,7 @@ cat $ANALYSIS_TMP\_4 >> $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log
 ####################
 # Run Pipeline.Rnw
 ###################
+
+echo "$(date '+%Y%m%d %r') [Rnw filling]">> $LOG_DIR/$LOGFILE
+
+rnw_trimming_details_subsection
