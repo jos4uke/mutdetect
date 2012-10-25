@@ -340,8 +340,8 @@ grep "^@" $MAPPING_DIR/$3.sam > $FILTER_DIR/header.txt
 grep -v "^@" $MAPPING_DIR/$3.sam > $FILTER_DIR/$3_tmp.sam
 
 # Count the initial number of reads in sam file
-echo "$(date '+%Y%m%d %r') [Filter all reads] $3.sam $(wc -l $FILTER_DIR/$3_tmp.sam | wc -l) " >> $FILTER_DIR/$FILTER_DIR_$DATE.log
-echo "$(date '+%Y%m%d %r') [Filter all reads] $3.sam $(wc -l $FILTER_DIR/$3_tmp.sam | wc -l) " >> $LOG_DIR/$LOGFILE
+echo "$(date '+%Y%m%d %r') [Filter all reads] $3.sam $(wc -l $FILTER_DIR/$3_tmp.sam | awk '{print $1}') " >> $FILTER_DIR/$FILTER_DIR_$DATE.log
+echo "$(date '+%Y%m%d %r') [Filter all reads] $3.sam $(wc -l $FILTER_DIR/$3_tmp.sam | awk '{print $1}') " >> $LOG_DIR/$LOGFILE
 
 # Remove non aligned reads
 grep -v "*" $FILTER_DIR/$3_tmp.sam > $FILTER_DIR/$3_mapped.sam
@@ -515,6 +515,6 @@ if [[ ! -e  $FORMATTED_LOG_DIR ]]; then
     mkdir $FORMATTED_LOG_DIR
 fi
 
-rnw_trimming_details_subsection
+rnw_trimming_details_subsection $LOG_DIR/$LOGFILE $FORMATTED_LOG_DIR
 
-rnw_alignment_filtering_subsection
+rnw_alignment_filtering_subsection $LOG_DIR/$LOGFILE $FORMATTED_LOG_DIR
