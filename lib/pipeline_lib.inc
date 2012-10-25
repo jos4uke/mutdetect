@@ -113,13 +113,25 @@ remove_reads_with_indels_size_greater_than_y_bases()
 
 
 #-----------------------------------------------------------
-# write formatted file for trimming details subsection
+# write formatted file for trimming details rnw subsection
 #
 rnw_trimming_details_subsection()
 {
     echo "Input read pairs" $(grep "Input Read" $LOG_DIR/$LOGFILE |awk '{print "\t"$4*2}') >> $REPORT_DIR/$FORMATTED_LOG_DIR/trimming_details.txt
-	echo "Both surviving" $(grep "Input Read" $LOG_DIR/$LOGFILE | awk '{print "\t"$7"\t"$8}') >> $REPORT_DIR/$FORMATTED_LOG_DIR/trimming_details.txt
-	echo "Forward only surviving" $(grep "Input Read" $LOG_DIR/$LOGFILE | awk '{print "\t"$12"\t"$13}') >> $REPORT_DIR/$FORMATTED_LOG_DIR/trimming_details.txt
-	echo "Reverse Oonly surviving"  $(grep "Input Read" $LOG_DIR/$LOGFILE | awk '{print "\t"$17"\t"$18}') >> $REPORT_DIR/$FORMATTED_LOG_DIR/trimming_details.txt
-	echo "Read pairs dropped" $(grep "Input Read" $LOG_DIR/$LOGFILE | awk '{print "\t"$20"\t"$21}') >> $REPORT_DIR/$FORMATTED_LOG_DIR/trimming_details.txt
+	echo "Both surviving" $(grep "Input Read" $LOG_DIR/$LOGFILE | awk '{print "\t"$7}') >> $REPORT_DIR/$FORMATTED_LOG_DIR/trimming_details.txt
+	echo "Forward only surviving" $(grep "Input Read" $LOG_DIR/$LOGFILE | awk '{print "\t"$12}') >> $REPORT_DIR/$FORMATTED_LOG_DIR/trimming_details.txt
+	echo "Reverse only surviving"  $(grep "Input Read" $LOG_DIR/$LOGFILE | awk '{print "\t"$17}') >> $REPORT_DIR/$FORMATTED_LOG_DIR/trimming_details.txt
+	echo "Read pairs dropped" $(grep "Input Read" $LOG_DIR/$LOGFILE | awk '{print "\t"$20}') >> $REPORT_DIR/$FORMATTED_LOG_DIR/trimming_details.txt
+}
+
+#-----------------------------------------------------------
+# write formatted file for alignment filtering rnw subsection
+#
+rnw_alignment_filtering_subsection()
+{
+    echo "Number of reads after quality filtering" $(grep "Input Read" $LOG_DIR/$LOGFILE | awk '{print "\t"$7*2}') >> $REPORT_DIR/$FORMATTED_LOG_DIR/alignment_filtering.txt
+	echo "Number of mapped reads" $(grep "Filter aligned reads" $LOG_DIR/$LOGFILE  | awk '{print "\t"$NF}') >> $REPORT_DIR/$FORMATTED_LOG_DIR/alignment_filtering.txt
+	echo "Number of reads belonging to MAPQ threshold" $(grep "Filter MAPQ" $LOG_DIR/$LOGFILE | awk '{print "\t"$NF}') >> $REPORT_DIR/$FORMATTED_LOG_DIR/alignment_filtering.txt
+	echo "Number of reads with no more than X independent events" $(grep -E "Filter XOXM.*mapped" $LOG_DIR/$LOGFILE | awk '{print "\t"$NF}') >> $REPORT_DIR/$FORMATTED_LOG_DIR/alignment_filtering.txt
+	echo "Number of reads belonging to microindel size interval" $(grep -E "Filter indels.*mapped" $LOG_DIR/$LOGFILE | awk '{print "\t"$NF}') >> $REPORT_DIR/$FORMATTED_LOG_DIR/alignment_filtering.txt
 }

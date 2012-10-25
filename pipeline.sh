@@ -42,6 +42,12 @@ then
   exit $?
 fi
 
+# TEST if LOG_DIR exist 
+
+if [[ ! -e $LOG_DIR ]]; then
+    mkdir $LOG_DIR 
+fi
+
 # TEST if files exist 
 
 if [[ -e $1 || -e $2 ]]; then
@@ -384,4 +390,14 @@ cat $ANALYSIS_TMP\_4 >> $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log
 
 echo "$(date '+%Y%m%d %r') [Rnw filling]">> $LOG_DIR/$LOGFILE
 
+if [[ ! -e $REPORT_DIR ]]; then
+    mkdir $REPORT_DIR 
+fi
+
+if [[ ! -e  $REPORT_DIR/$FORMATTED_LOG_DIR ]]; then
+    mkdir $REPORT_DIR/$FORMATTED_LOG_DIR
+fi
+
 rnw_trimming_details_subsection
+
+rnw_alignment_filtering_subsection
