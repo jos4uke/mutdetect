@@ -123,6 +123,7 @@ check_params_validity()
 	not_processed_warn_msg="$(date '+%Y%m%d %r') [$0] Warning Attention $key param with value $value will not be processed"
 	path_err_msg="$(date '+%Y%m%d %r') [$0] Failed Error $key param with value $value: path value does not exist or is empty"
 	prefix_err_msg="$(date '+%Y%m%d %r') [$0] Failed Error $key param with value $value: prefix value does not exist"
+	value_not_allowed_err_msg="$(date '+%Y%m%d %r') [$0] Failed Error $key param with value $value: value is not allowed"
 	# ok msgs
 	ok_msg="$(date '+%Y%m%d %r') [$0] OK $key param with value $value is valid"
 
@@ -302,7 +303,11 @@ check_params_validity()
 		    echo -e $not_int_err_msg >&2
 		    rtrn=5
 		    else
-		    echo -e $ok_msg
+		    if [[ $value -eq 33 || $value -eq 64 ]]; then
+			echo -e $ok_msg
+		    else
+			echo -e $value_not_allowed_err_msg >&2
+		    fi
 		fi
 		;;
 	    "snpeff_data") 
