@@ -379,6 +379,55 @@ check_params_validity()
     fi
 }
 
+#-----------------------------------------
+# check_params_interval_validity function
+#
+check_params_interval_validity()
+{
+    rtrn=0
+    # check parameters value interval: if error occurs return exit code 6
+    for key in "${!PARAMETERS_TABLE[@]}"
+    do
+	value=${PARAMETERS_TABLE[${key}]}
+
+	# msgs
+	check_interval_msg="$(date '+%Y%m%d %r') [$0] Check $key value interval validity"
+	ok_msg="$(date '+%Y%m%d %r') [$0] OK Checked $key value interval validity"
+	out_of_interval_err_msg="$(date '+%Y%m%d %r') [$0] Failed Error $key value is out of allowed interval"
+
+	case $key in
+	    "nb_of_independent_event") 
+		echo -e $check_interval_msg
+		min=${PARAMETERS_TABLE["${key}_min"]}
+		max=${PARAMETERS_TABLE["${key}_max"]}
+		if [[ $value -ge $min && $value -le $max ]]; then
+		    echo -e $ok_msg
+		    else
+		    echo -e $out_of_interval_err_msg >&2
+		    rtrn=6
+		fi
+		;;
+	    "microindel_size") 
+		echo -e $check_interval_msg
+		min=${PARAMETERS_TABLE["${key}_min"]}
+		max=${PARAMETERS_TABLE["${key}_max"]}
+		if [[ $value -ge $min && $value -le $max ]]; then
+		    echo -e $ok_msg
+		    else
+		    echo -e $out_of_interval_err_msg >&2
+		    rtrn=6
+		fi
+		;;
+	esac
+    done
+
+    if [[ $rtrn -eq 0 ]]; then
+	return $?
+	else
+	return $rtrn
+    fi
+}
+
 #-----------------------------------------------------------
 # remove_reads_with_more_than_x_independent_events function
 #
