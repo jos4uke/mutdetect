@@ -30,6 +30,8 @@ TRIMMING_DIR="01_Trimming"
 MAPPING_DIR="02_Mapping"
 FILTER_DIR="03_Filter"
 ANALYSIS_DIR="04_Analysis"
+REPORT_DIR="05_Report"
+FORMATTED_LOG_DIR="$REPORT_DIR/formatted_log"
 
 TRIMMING_TMP=$TRIMMING_DIR/tmp
 MAPPING_TMP=$MAPPING_DIR/tmp
@@ -44,7 +46,7 @@ declare -A PARAMETERS_TABLE
 
 # TEST if enough args
 
-if [ $# -ne "$ARGS" ]
+if [[ $# -ne ${ARGS} ]]
 then
   echo "Usage: `$0` SEQfile1 SEQfile2 ECHname"
   exit 0
@@ -230,7 +232,7 @@ if [[ ${PARAMETERS_TABLE["QUAL_ENCODING"]} -eq 33 ]]; then
 	$TRIMMING_DIR/$3_2_paired.fq $TRIMMING_DIR/$3_2_single.fq  \
 	LEADING:${PARAMETERS_TABLE["trimmo_leading_qual_min"]}  \
 	TRAILING:${PARAMETERS_TABLE["trimmo_trailing_qual_min"]}  \
-	SLIDINGWINDOW:${PARAMETERS_TABLE["trimmo_slinding_window_size"]}:${PARAMETERS_TABLE["trimmo_sliding_window_qual"]} \
+	SLIDINGWINDOW:${PARAMETERS_TABLE["trimmo_sliding_window_size"]}:${PARAMETERS_TABLE["trimmo_sliding_window_qual"]} \
 	MINLEN:${PARAMETERS_TABLE["trimmo_min_length"]} 2>$TRIMMING_TMP \
 	>> $TRIMMING_TMP
     else 
@@ -244,7 +246,7 @@ if [[ ${PARAMETERS_TABLE["QUAL_ENCODING"]} -eq 33 ]]; then
 	$TRIMMING_DIR/$3_2_paired.fq $TRIMMING_DIR/$3_2_single.fq  \
 	LEADING:${PARAMETERS_TABLE["trimmo_leading_qual_min"]}  \
 	TRAILING:${PARAMETERS_TABLE["trimmo_trailing_qual_min"]}  \
-	SLIDINGWINDOW:${PARAMETERS_TABLE["trimmo_slinding_window_size"]}:${PARAMETERS_TABLE["trimmo_sliding_window_qual"]} \
+	SLIDINGWINDOW:${PARAMETERS_TABLE["trimmo_sliding_window_size"]}:${PARAMETERS_TABLE["trimmo_sliding_window_qual"]} \
 	MINLEN:${PARAMETERS_TABLE["trimmo_min_length"]} 2>$TRIMMING_TMP \
 	>> $TRIMMING_TMP
 fi
@@ -352,8 +354,8 @@ echo "$(date '+%Y%m%d %r') [Filter aligned reads] $FILTER_DIR/$3_mapped.sam $(wc
 awk '{if($5==0 || $5>=20) print}' $FILTER_DIR/$3_mapped.sam > $FILTER_DIR/$3_mapped_MAPQ.sam
 
 # Count the number of aligned reads in sam file filtered for given MAPQ threshold
-echo "$(date '+%Y%m%d %r') [Filter MAPQ] $FILTER_DIR/$3_mapped_MAPQ.sam $(wc -l $FILTER_DIR/$3_mapped_MAPQ.sam) " >> $FILTER_DIR/$FILTER_DIR_$DATE.log
-echo "$(date '+%Y%m%d %r') [Filter MAPQ] $FILTER_DIR/$3_mapped_MAPQ.sam $(wc -l $FILTER_DIR/$3_mapped_MAPQ.sam) " >> $LOG_DIR/$LOGFILE
+echo "$(date '+%Y%m%d %r') [Filter MAPQ] $FILTER_DIR/$3_mapped_MAPQ.sam $(wc -l $FILTER_DIR/$3_mapped_MAPQ.sam | awk '{print $1}') " >> $FILTER_DIR/$FILTER_DIR_$DATE.log
+echo "$(date '+%Y%m%d %r') [Filter MAPQ] $FILTER_DIR/$3_mapped_MAPQ.sam $(wc -l $FILTER_DIR/$3_mapped_MAPQ.sam | awk '{print $1}') " >> $LOG_DIR/$LOGFILE
 
 # Remove reads with more than x independent events
 # Filter on XO and XM (6 cases): Xo+Xm <= 2 (default in ${PARAMETERS_TABLE["nb_of_independent_event"]})
@@ -480,7 +482,12 @@ fi
 java -jar ${PARAMETERS_TABLE["SNPEFF_PATH"]}/snpEff.jar ${PARAMETERS_TABLE["snpeff_data"]} \
     -c ${PARAMETERS_TABLE["SNPEFF_PATH"]}/snpEff.config \
     -i ${PARAMETERS_TABLE["snpeff_inFile_format"]} \
-    -o VCF $ANALYSIS_DIR/$3.vcf > $ANALYSIS_DIR/$3_snpeff.txt 2>$ANALYSIS_TMP\_4
+    -o vcf $ANALYSIS_DIR/$3.vcf > $ANALYSIS_DIR/$3_snpeff.vcf 2>$ANALYSIS_TMP\_4
+    
+java -jar ${PARAMETERS_TABLE["SNPEFF_PATH"]}/snpEff.jar ${PARAMETERS_TABLE["snpeff_data"]} \
+    -c ${PARAMETERS_TABLE["SNPEFF_PATH"]}/snpEff.config \
+    -i ${PARAMETERS_TABLE["snpeff_inFile_format"]} \
+    -o txt $ANALYSIS_DIR/$3.vcf > $ANALYSIS_DIR/$3_snpeff.txt 2>$ANALYSIS_TMP\_4
 
 echo "$(date '+%Y%m%d %r') [Analysis: snpeff]">> $LOG_DIR/$LOGFILE
 mv snpEff_* $ANALYSIS_DIR/.
@@ -497,3 +504,17 @@ cat $ANALYSIS_TMP\_4 >> $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log
 ####################
 # Run Pipeline.Rnw
 ###################
+
+echo "$(date '+%Y%m%d %r') [Rnw filling]">> $LOG_DIR/$LOGFILE
+
+if [[ ! -e $REPORT_DIR ]]; then
+    mkdir $REPORT_DIR 
+fi
+
+if [[ ! -e  $FORMATTED_LOG_DIR ]]; then
+    mkdir $FORMATTED_LOG_DIR
+fi
+
+rnw_trimming_details_subsection
+
+rnw_alignment_filtering_subsection
