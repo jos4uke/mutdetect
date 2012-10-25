@@ -88,12 +88,15 @@ if (( $(wc -l $1 | awk 'print $1') == $(wc -l $2 | awk 'print $1') )); then
     echo "$(date '+%Y%m%d %r') [fastq input files] OK Input files have the same number of reads." >> $LOG_DIR/$LOGFILE
 else
     echo "$(date '+%Y%m%d %r') [fastq input files] Failed Input files do not have the same number of reads!" >> $LOG_DIR/$LOGFILE
+    echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code 4." >> $LOG_DIR/$LOGFILE
+    exit 4
 fi
 
 # TEST if pipeline_default.config exists and put the parameters into a hash table
 
 if [[ -e $PIPELINE_DEFAULT_CONFIG ]]; then
     echo "$(date '+%Y%m%d %r') [get_pipeline_default_parameters] OK $PIPELINE_DEFAULT_CONFIG default config file exists! Let's check parameters validity ..." >> $LOG_DIR/$LOGFILE
+    # load default config parameters
     get_pipeline_default_parameters $PIPELINE_DEFAULT_CONFIG 2>$ERROR_TMP
     rtrn=$?
     if [[ $rtrn -ne 0 ]]; then
@@ -102,6 +105,28 @@ if [[ -e $PIPELINE_DEFAULT_CONFIG ]]; then
 	exit $rtrn
     else
 	echo "$(date '+%Y%m%d %r') [get_pipeline_default_parameters] OK Default config parameters were loaded successfully." >> $LOG_DIR/$LOGFILE
+    fi
+    # check default config params type validity
+    check_params_validity 2>$ERROR_TMP
+    rtrn=$?
+    if [[ $rtrn -ne 0 ]]; then
+	echo "$(date '+%Y%m%d %r') [check_params_validity] Failed Default parameters type checking generates errors." >> $LOG_DIR/$LOGFILE
+	cat $ERROR_TMP >> $LOG_DIR/$LOGFILE
+	echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code $rtrn." >> $LOG_DIR/$LOGFILE
+	exit $rtrn
+    else
+	echo "$(date '+%Y%m%d %r') [check_params_validity] OK Default config parameters type checking was done successfully." >> $LOG_DIR/$LOGFILE
+    fi
+    # check default config params interval validity
+    check_params_interval_validity 2>$ERROR_TMP
+    rtrn=$?
+    if [[ $rtrn -ne 0 ]]; then
+	echo "$(date '+%Y%m%d %r') [check_params_interval_validity] Failed Default parameters interval checking generates errors." >> $LOG_DIR/$LOGFILE
+	cat $ERROR_TMP >> $LOG_DIR/$LOGFILE
+	echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code $rtrn." >> $LOG_DIR/$LOGFILE
+	exit $rtrn
+    else
+	echo "$(date '+%Y%m%d %r') [check_params_interval_validity] OK Default config parameters interval checking was done successfully." >> $LOG_DIR/$LOGFILE
     fi
 else 
     echo "$(date '+%Y%m%d %r') [get_pipeline_default_parameters] Failed $PIPELINE_DEFAULT_CONFIG file does not exist." >> $LOG_DIR/$LOGFILE
@@ -113,6 +138,7 @@ fi
 
 if [[ -e $PIPELINE_USER_CONFIG ]]; then
     echo "$(date '+%Y%m%d %r') [get_pipeline_user_parameters] OK $PIPELINE_USER_CONFIG user config file exists! Let's check parameters validity ..." >> $LOG_DIR/$LOGFILE
+    # load user config parameters
     get_pipeline_user_parameters $PIPELINE_USER_CONFIG 2>$ERROR_TMP
     rtrn=$?
     if [[ $rtrn -ne 0 ]]; then
@@ -121,6 +147,31 @@ if [[ -e $PIPELINE_USER_CONFIG ]]; then
 	exit $rtrn
     else
 	echo "$(date '+%Y%m%d %r') [get_pipeline_user_parameters] OK User config parameters were loaded successfully." >> $LOG_DIR/$LOGFILE
+	if [[ -s $ERROR_TMP ]]; then
+	    cat $ERROR_TMP >> $LOG_DIR/$LOGFILE
+	fi
+    fi
+    # check user config params type validity
+    check_params_validity 2>$ERROR_TMP
+    rtrn=$?
+    if [[ $rtrn -ne 0 ]]; then
+	echo "$(date '+%Y%m%d %r') [check_params_validity] Failed User parameters type checking generates errors." >> $LOG_DIR/$LOGFILE
+	cat $ERROR_TMP >> $LOG_DIR/$LOGFILE
+	echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code $rtrn." >> $LOG_DIR/$LOGFILE
+	exit $rtrn
+    else
+	echo "$(date '+%Y%m%d %r') [check_params_validity] OK User config parameters type checking was done successfully." >> $LOG_DIR/$LOGFILE
+    fi
+    # check user config params interval validity
+    check_params_interval_validity 2>$ERROR_TMP
+    rtrn=$?
+    if [[ $rtrn -ne 0 ]]; then
+	echo "$(date '+%Y%m%d %r') [check_params_interval_validity] Failed User parameters interval checking generates errors." >> $LOG_DIR/$LOGFILE
+	cat $ERROR_TMP >> $LOG_DIR/$LOGFILE
+	echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code $rtrn." >> $LOG_DIR/$LOGFILE
+	exit $rtrn
+    else
+	echo "$(date '+%Y%m%d %r') [check_params_interval_validity] OK User config parameters interval checking was done successfully." >> $LOG_DIR/$LOGFILE
     fi
 else 
     echo "$(date '+%Y%m%d %r') [get_pipeline_user_parameters] Failed $PIPELINE_USER_CONFIG file does not exist." >> $LOG_DIR/$LOGFILE
@@ -135,9 +186,7 @@ for i in "${!PARAMETERS_TABLE[@]}"
 do
     echo -e "$i=${PARAMETERS_TABLE[$i]}" >> $LOG_DIR/$LOGFILE
 done
-if [[ -s $ERROR_TMP ]]; then
-    cat $ERROR_TMP >> $LOG_DIR/$LOGFILE
-fi
+
 
 ########################
 # SECTION TRIMMING
