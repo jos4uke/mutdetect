@@ -120,7 +120,7 @@ if [[ ${PARAMETERS_TABLE["QUAL_ENCODING"]} -eq 33 ]]; then
 	$TRIMMING_DIR/$3_2_paired.fq $TRIMMING_DIR/$3_2_single.fq  \
 	LEADING:${PARAMETERS_TABLE["trimmo_leading_qual_min"]}  \
 	TRAILING:${PARAMETERS_TABLE["trimmo_trailing_qual_min"]}  \
-	SLIDINGWINDOW:${PARAMETERS_TABLE["trimmo_slinding_window_size"]}:${PARAMETERS_TABLE["trimmo_sliding_window_qual"]} \
+	SLIDINGWINDOW:${PARAMETERS_TABLE["trimmo_sliding_window_size"]}:${PARAMETERS_TABLE["trimmo_sliding_window_qual"]} \
 	MINLEN:${PARAMETERS_TABLE["trimmo_min_length"]} 2>$TRIMMING_TMP \
 	>> $TRIMMING_TMP
     else 
@@ -134,7 +134,7 @@ if [[ ${PARAMETERS_TABLE["QUAL_ENCODING"]} -eq 33 ]]; then
 	$TRIMMING_DIR/$3_2_paired.fq $TRIMMING_DIR/$3_2_single.fq  \
 	LEADING:${PARAMETERS_TABLE["trimmo_leading_qual_min"]}  \
 	TRAILING:${PARAMETERS_TABLE["trimmo_trailing_qual_min"]}  \
-	SLIDINGWINDOW:${PARAMETERS_TABLE["trimmo_slinding_window_size"]}:${PARAMETERS_TABLE["trimmo_sliding_window_qual"]} \
+	SLIDINGWINDOW:${PARAMETERS_TABLE["trimmo_sliding_window_size"]}:${PARAMETERS_TABLE["trimmo_sliding_window_qual"]} \
 	MINLEN:${PARAMETERS_TABLE["trimmo_min_length"]} 2>$TRIMMING_TMP \
 	>> $TRIMMING_TMP
 fi
@@ -370,7 +370,12 @@ fi
 java -jar ${PARAMETERS_TABLE["SNPEFF_PATH"]}/snpEff.jar ${PARAMETERS_TABLE["snpeff_data"]} \
     -c ${PARAMETERS_TABLE["SNPEFF_PATH"]}/snpEff.config \
     -i ${PARAMETERS_TABLE["snpeff_inFile_format"]} \
-    -o VCF $ANALYSIS_DIR/$3.vcf > $ANALYSIS_DIR/$3_snpeff.txt 2>$ANALYSIS_TMP\_4
+    -o vcf $ANALYSIS_DIR/$3.vcf > $ANALYSIS_DIR/$3_snpeff.vcf 2>$ANALYSIS_TMP\_4
+    
+java -jar ${PARAMETERS_TABLE["SNPEFF_PATH"]}/snpEff.jar ${PARAMETERS_TABLE["snpeff_data"]} \
+    -c ${PARAMETERS_TABLE["SNPEFF_PATH"]}/snpEff.config \
+    -i ${PARAMETERS_TABLE["snpeff_inFile_format"]} \
+    -o txt $ANALYSIS_DIR/$3.vcf > $ANALYSIS_DIR/$3_snpeff.txt 2>$ANALYSIS_TMP\_4
 
 echo "$(date '+%Y%m%d %r') [Analysis: snpeff]">> $LOG_DIR/$LOGFILE
 mv snpEff_* $ANALYSIS_DIR/.
