@@ -90,8 +90,293 @@ get_pipeline_user_parameters()
 	fi
     done < $INFILE
 
-# TODO Check parameters interval and parameters type, if problems exit
-    return $?
+    if [[ $rtrn -eq 0 ]]; then
+	return $?
+	else
+	return $rtrn
+    fi
+}
+
+#--------------------------------
+# check_params_validity function
+#
+check_params_validity()
+{
+    rtrn=0
+    # check parameters value type: if error occurs return exit code 5
+    for key in "${!PARAMETERS_TABLE[@]}"
+    do
+	value=${PARAMETERS_TABLE[${key}]}
+
+	# msgs
+	check_dir_name_msg="$(date '+%Y%m%d %r') [$0] Check $key directory name value existence"	
+	check_format_name_msg="$(date '+%Y%m%d %r') [$0] Check $key format name value validity"
+	check_path_value_msg="$(date '+%Y%m%d %r') [$0] Check $key path value existence"
+	check_prefix_value_msg="$(date '+%Y%m%d %r') [$0] Check $key prefix value validity"
+	check_value_type_msg="$(date '+%Y%m%d %r') [$0] Check $key value type validity"
+	## warn & err msgs
+	bool_err_msg="$(date '+%Y%m%d %r') [$0] Failed Error $key param with value $value: boolean value is not valid, should be TRUE or 1, or FALSE or 0"
+	dir_name_err_msg="$(date '+%Y%m%d %r') [$0] Failed Error $key param with value $value: directory name value does not exist or is not a directory"
+	exec_err_msg="$(date '+%Y%m%d %r') [$0] Failed Error $key param with value $value: command value is not executable or does not exist"
+	format_name_err_msg="$(date '+%Y%m%d %r') [$0] Failed Error $key param with value $value: format name value is not valid"
+	not_int_err_msg="$(date '+%Y%m%d %r') [$0] Failed Error $key param value is not a integer"
+	not_processed_warn_msg="$(date '+%Y%m%d %r') [$0] Warning Attention $key param with value $value will not be processed"
+	path_err_msg="$(date '+%Y%m%d %r') [$0] Failed Error $key param with value $value: path value does not exist or is empty"
+	prefix_err_msg="$(date '+%Y%m%d %r') [$0] Failed Error $key param with value $value: prefix value does not exist"
+	# ok msgs
+	ok_msg="$(date '+%Y%m%d %r') [$0] OK $key param with value $value is valid"
+
+	case $key in
+	    "BWA_REFERENCE_GENOME_INDEX")
+		echo -e $check_prefix_value_msg
+		if [[ $(ls ${value}.* | wc -l) -gt 0 ]]; then
+		    echo -e $ok_msg
+		    else
+		    echo -e $prefix_err_msg >&2
+		    rtrn=5
+		fi
+		;;
+	    "REFERENCE_GENOME_FASTA") 
+		echo -e $check_path_value_msg
+		if [[ -e $value && -s $value ]]; then
+		    echo -e $ok_msg
+		    else
+		    echo -e $path_err_msg >&2
+		    rtrn=5
+		fi
+		;;
+	    "SNPEFF_Version") 
+		echo -e $not_processed_warn_msg >&2
+		;;
+	    "SNPEFF_PATH") 
+		echo -e $check_path_value_msg
+		if [[ -e $value && -x $value ]]; then
+		    echo -e $ok_msg
+		    else
+		    echo -e $exec_err_msg >&2
+		    rtrn=5
+		fi
+		;;
+	    "bwa_aln_t") 
+		echo -e $check_value_type_msg
+		if !(declare -i value); then
+		    echo -e $not_int_err_msg >&2
+		    rtrn=5
+		    else
+		    echo -e $ok_msg
+		fi
+		;;
+	    "bwa_aln_n") 
+		echo -e $check_value_type_msg
+		if !(declare -i value); then
+		    echo -e $not_int_err_msg >&2
+		    rtrn=5
+		    else
+		    echo -e $ok_msg
+		fi
+		;;
+	    "bwa_aln_o") 
+		echo -e $check_value_type_msg
+		if !(declare -i value); then
+		    echo -e $not_int_err_msg >&2
+		    rtrn=5
+		    else
+		    echo -e $ok_msg
+		fi
+		;;
+	    "bwa_aln_R") 
+		echo -e $check_value_type_msg
+		if !(declare -i value); then
+		    echo -e $not_int_err_msg >&2
+		    rtrn=5
+		    else
+		    echo -e $ok_msg
+		fi
+		;;
+	    "bwa_sampe_n") 
+		echo -e $check_value_type_msg
+		if !(declare -i value); then
+		    echo -e $not_int_err_msg >&2
+		    rtrn=5
+		    else
+		    echo -e $ok_msg
+		fi
+		;;
+	    "bwa_sampe_N") 
+		echo -e $check_value_type_msg
+		if !(declare -i value); then
+		    echo -e $not_int_err_msg >&2
+		    rtrn=5
+		    else
+		    echo -e $ok_msg
+		fi
+		;;
+	    "nb_of_independent_event") 
+		echo -e $check_value_type_msg
+		if !(declare -i value); then
+		    echo -e $not_int_err_msg >&2
+		    rtrn=5
+		    else
+		    echo -e $ok_msg
+		fi
+		;;
+	    "microindel_size") 
+		echo -e $check_value_type_msg
+		if !(declare -i value); then
+		    echo -e $not_int_err_msg >&2
+		    rtrn=5
+		    else
+		    echo -e $ok_msg
+		fi
+		;;
+	    "multiple_hit_allowed") 
+		echo -e $check_value_type_msg
+		if [[ $value -eq "TRUE" || $value -eq "FALSE" || $value -eq 1 || $value -eq 0 ]]; then
+		    echo -e $ok_msg
+		else
+		    echo -e $bool_err_msg >&2
+		    rtrn=5
+		fi
+		;;
+	    "trimmo_leading_qual_min") 
+		echo -e $check_value_type_msg
+		if !(declare -i value); then
+		    echo -e $not_int_err_msg >&2
+		    rtrn=5
+		    else
+		    echo -e $ok_msg
+		fi
+		;;
+	    "trimmo_trailing_qual_min") 
+		echo -e $check_value_type_msg
+		if !(declare -i value); then
+		    echo -e $not_int_err_msg >&2
+		    rtrn=5
+		    else
+		    echo -e $ok_msg
+		fi
+		;;
+	    "trimmo_slinding_window_size") 
+		echo -e $check_value_type_msg
+		if !(declare -i value); then
+		    echo -e $not_int_err_msg >&2
+		    rtrn=5
+		    else
+		    echo -e $ok_msg
+		fi
+		;;
+	    "trimmo_sliding_window_qual") echo -e $check_value_type_msg
+		if !(declare -i value); then
+		    echo -e $not_int_err_msg >&2
+		    rtrn=5
+		    else
+		    echo -e $ok_msg
+		fi
+		;;
+	    "trimmo_min_length") 
+		echo -e $check_value_type_msg
+		if !(declare -i value); then
+		    echo -e $not_int_err_msg >&2
+		    rtrn=5
+		fi
+		;;
+	    "trimmo_thread_number") 
+		echo -e $check_value_type_msg
+		if !(declare -i value); then
+		    echo -e $not_int_err_msg >&2
+		    rtrn=5
+		fi
+		;;
+	    "MAPQ_min") 
+		echo -e $check_value_type_msg
+		if !(declare -i value); then
+		    echo -e $not_int_err_msg >&2
+		    rtrn=5
+		    else
+		    echo -e $ok_msg
+		fi
+		;;
+	    "QUAL_ENCODING") 
+		echo -e $check_value_type_msg
+		if !(declare -i value); then
+		    echo -e $not_int_err_msg >&2
+		    rtrn=5
+		    else
+		    echo -e $ok_msg
+		fi
+		;;
+	    "snpeff_data") 
+		echo -e $check_dir_name_msg
+		if [[ -d "${PARAMETERS_TABLE['SNPEFF_PATH']}/data/$value" ]]; then
+		    echo -e $ok_msg
+		    else
+		    echo -e $dir_name_err_msg >&2
+		    rtrn=5
+		fi
+		;;
+	    "snpeff_inFile_format") 
+		echo -e $check_format_name_msg
+		if [[ $value -eq "VCF" ]]; then
+		    echo -e $ok_msg
+		else
+		    echo -e $format_name_err_msg >&2
+		    rtrn=5
+		fi
+		;;
+	    "snpeff_outFile_format") 
+		echo -e $check_format_name_msg
+		if [[ $value -eq "VCF" ]]; then
+		    echo -e $ok_msg
+		else
+		    echo -e $format_name_err_msg >&2
+		    rtrn=5
+		fi
+		;;
+	    "nb_of_independent_event_min") 
+		echo -e $check_value_type_msg
+		if !(declare -i  value); then
+		    echo -e $not_int_err_msg >&2
+		    rtrn=5
+		    else
+		    echo -e $ok_msg
+		fi
+		;;
+	    "nb_of_independent_event_max") 
+		echo -e $check_value_type_msg
+		if !(declare -i value); then
+		    echo -e $not_int_err_msg >&2
+		    rtrn=5
+		fi
+		;;
+	    "microindel_size_min") 
+		echo -e $check_value_type_msg
+		if !(declare -i value); then
+		    echo -e $not_int_err_msg >&2
+		    rtrn=5
+		    else
+		    echo -e $ok_msg
+		fi
+		;;
+	    "microindel_size_max") 
+		echo -e $check_value_type_msg
+		if !(declare -i value); then
+		    echo -e $not_int_err_msg >&2
+		    rtrn=5
+		    else
+		    echo -e $ok_msg
+		fi
+		;;
+	    *) 
+		echo -e $not_processed_warn_msg >&2
+		;;
+	esac
+    done
+
+    if [[ $rtrn -eq 0 ]]; then
+	return $?
+	else
+	return $rtrn
+    fi
 }
 
 #-----------------------------------------------------------
@@ -117,7 +402,7 @@ remove_reads_with_more_than_x_independent_events()
     #done < $INFILE
     #IFS=$old
 
-    gawk -v limit="${LIMIT}" 'match($0, /XM:i:([0-9]+).*XO:i:([0-9]+)|XO:i:([0-9]+).*XM:i:([0-9]+)/, a) {if ((a[1]+a[2])<=limit) {print $0} else {print $0 > "/dev/stderr"}}' $INFILE
+    gawk -v limit="${LIMIT}" 'match($0, /XM:i:([0-9]+).*XO:i:([0-9]+)|XO:i:([0-9]+).*XM:i:([0-9]+)/, a) {if ((a[1]+a[2])<=limit) {print $0} else {print $0 > "/dev/stderr"}}' $INFILE # TODO add error catching to stderr
 }
 
 #-------------------------------------------------------------
@@ -168,6 +453,6 @@ remove_reads_with_indels_size_greater_than_y_bases()
                 {
                    print $0; 
                 }
-             }' $INFILE
+             }' $INFILE # TODO add error catching to stderr
     #done < $INFILE
 }
