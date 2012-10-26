@@ -13,7 +13,9 @@
 
 # Inclusion de la librairie de fonctions
 
-PREFIX="/projects/ARABIDOPSIS/SCRIPTS/PIPELINE"
+PROD_PREFIX="/usr/local"
+DEV_PREFIX="$(pwd)/.."
+PREFIX=$DEV_PREFIX # TO BE CHANGED WHEN SWITCHING TO PROD
 . $PREFIX/lib/pipeline_lib.inc
 
 # Positionnement des variables
@@ -22,9 +24,11 @@ ARGS=3
 DATE=$(date '+%Y_%m_%d_%H_%M_%S')
 LOGFILE=$3_$DATE\_log.txt
 WORKING_DIR=$(pwd)
-PIPELINE_SHARED=$PREFIX/share/$(basename $0)
+PIPELINE_SHARED=$PREFIX/share/$(basename ${0%.*})
 PIPELINE_DEFAULT_CONFIG=$PIPELINE_SHARED/etc/pipeline_default.config
-PIPELINE_USER_CONFIG=$WORKING_DIR/pipeline_user.config
+PROD_PIPELINE_USER_CONFIG=$WORKING_DIR/pipeline_user.config
+DEV_PIPELINE_USER_CONFIG=$PREFIX/pipeline_user.config
+PIPELINE_USER_CONFIG=$DEV_PIPELINE_USER_CONFIG # TO BE CHANGED WHEN SWITCHING TO PROD
 
 LOG_DIR="log"
 TRIMMING_DIR="01_Trimming"
@@ -39,7 +43,7 @@ MAPPING_TMP=$MAPPING_DIR/tmp
 FILTER_TMP=$FILTER_DIR/tmp
 ANALYSIS_TMP=$ANALYSIS_DIR/tmp
 
-ERROR_TMP="/tmp/tmp_pipeline_error_$USER_$DATE.log"
+ERROR_TMP="/tmp/tmp_pipeline_error_${USER}_$DATE.log"
 
 # DECLARE GLOBAL VARIABLE
 
@@ -555,6 +559,6 @@ echo "$(date '+%Y%m%d %r') [$(basename $0)] Executed command: $0 $*" | tee -a $L
 echo -n "$(date '+%Y%m%d %r') [$(basename $0)] Elapsed time: " | tee -a $LOG_DIR/$LOGFILE 2>&1
 echo |awk -v time="$SECONDS" '{print strftime("%Hh:%Mm:%Ss", time, 1)}' | tee -a $LOG_DIR/$LOGFILE 2>&1
 echo "$(date '+%Y%m%d %r') [$(basename $0)] Exits the pipeline." | tee -a $LOG_DIR/$LOGFILE 2>&1
-echo "$(date '+%Y%m%d %r') [$(basename $0)] More information about the analysis can be found in $LOG_DIR/$LOGFILE." | tee -a $LOG_DIR/$LOGFILE 2>&1
+echo "$(date '+%Y%m%d %r') [$(basename $0)] More information about the analysis can be found in $LOG_DIR/$LOGFILE" | tee -a $LOG_DIR/$LOGFILE 2>&1
 
 exit 0
