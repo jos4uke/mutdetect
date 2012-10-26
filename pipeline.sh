@@ -24,7 +24,7 @@ LOGFILE=$3_$DATE\_log.txt
 WORKING_DIR=$(pwd)
 PIPELINE_SHARED=$PREFIX/share/$(basename $0)
 PIPELINE_DEFAULT_CONFIG=$PIPELINE_SHARED/etc/pipeline_default.config
-PIPELINE_USER_CONFIG=$WORKING_DIR/pipeline_user.config # should be in $WORKING_DIR by default
+PIPELINE_USER_CONFIG=$WORKING_DIR/pipeline_user.config
 
 LOG_DIR="log"
 TRIMMING_DIR="01_Trimming"
@@ -45,8 +45,10 @@ ERROR_TMP="/tmp/tmp_pipeline_error_$USER_$DATE.log"
 
 declare -A PARAMETERS_TABLE
 
-# TEST if enough args
 
+#==============================================
+# TEST if enough args else print usage message
+#==============================================
 [[ $# -ne "$ARGS" ]] && { printf %s "\
 Program: $(basename $0)
 Version: none
@@ -63,20 +65,30 @@ Notes: 1. this pipeline version is actually able to perform variant calling
 ";
 exit 1; }
 
+#=======
+# BEGIN
+#=======
+
 # Create log directory
 
 if [[ -d $LOG_DIR ]]; then
+    echo "$(date '+%Y%m%d %r') [$(basename $0)] Start running the pipeline." > $LOG_DIR/$LOGFILE
+    echo "$(date '+%Y%m%d %r') [$(basename $0)] Executed command: $0 $*" >> $LOG_DIR/$LOGFILE
     echo "$(date '+%Y%m%d %r') [Log directory] OK $LOG_DIR directory already exists. Will write log files in this directory." >> $LOG_DIR/$LOGFILE
 else
     mkdir $LOG_DIR 2>$ERROR_TMP
     if [[ $? -ne 0 ]]; then
-	echo "$(date '+%Y%m%d %r') [Log directory] Failed Log directory, $LOG_DIR, was not created. An error occurs: $(cat $ERROR_TMP)" >> $LOG_DIR/$LOGFILE
-	echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code 126." >> $LOG_DIR/$LOGFILE
+	echo "$(date '+%Y%m%d %r') [Log directory] Failed Log directory, $LOG_DIR, was not created." | tee -a $ERROR_TMP 2>&1
+	echo "$(date '+%Y%m%d %r') [Pipeline error] More information can be found in $ERROR_TMP."
+	echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code 126." | tee -a $ERROR_TMP 2>&1
 	exit 126
     else
+	echo "$(date '+%Y%m%d %r') [$(basename $0)] Start running the pipeline." > $LOG_DIR/$LOGFILE
+	echo "$(date '+%Y%m%d %r') [$(basename $0)] Executed command: $0 $*" >> $LOG_DIR/$LOGFILE
 	echo "$(date '+%Y%m%d %r') [Log directory] OK $LOG_DIR directory was created sucessfully. Will write log files in this directory." >> $LOG_DIR/$LOGFILE	
     fi
 fi
+
 
 # TEST if files exist 
 
@@ -535,3 +547,14 @@ fi
 rnw_trimming_details_subsection $LOG_DIR/$LOGFILE $FORMATTED_LOG_DIR
 
 rnw_alignment_filtering_subsection $LOG_DIR/$LOGFILE $FORMATTED_LOG_DIR
+
+#=====
+# END
+#=====
+echo "$(date '+%Y%m%d %r') [$(basename $0)] Executed command: $0 $*" | tee -a $LOG_DIR/$LOGFILE 2>&1
+echo -n "$(date '+%Y%m%d %r') [$(basename $0)] Elapsed time: " | tee -a $LOG_DIR/$LOGFILE 2>&1
+echo |awk -v time="$SECONDS" '{print strftime("%Hh:%Mm:%Ss", time, 1)}' | tee -a $LOG_DIR/$LOGFILE 2>&1
+echo "$(date '+%Y%m%d %r') [$(basename $0)] Exits the pipeline." | tee -a $LOG_DIR/$LOGFILE 2>&1
+echo "$(date '+%Y%m%d %r') [$(basename $0)] More information about the analysis can be found in $LOG_DIR/$LOGFILE." | tee -a $LOG_DIR/$LOGFILE 2>&1
+
+exit 0
