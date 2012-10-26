@@ -19,7 +19,7 @@ PREFIX="/projects/ARABIDOPSIS/SCRIPTS/PIPELINE"
 # Positionnement des variables
 
 ARGS=3
-DATE=$(date '+%Y_%m_%d_%H_%M')
+DATE=$(date '+%Y_%m_%d_%H_%M_%S')
 LOGFILE=$3_$DATE\_log.txt
 WORKING_DIR=$(pwd)
 PIPELINE_DEFAULT_CONFIG="/projects/ARABIDOPSIS/SCRIPTS/PIPELINE/pipeline_default.config"
@@ -516,6 +516,11 @@ cat $ANALYSIS_TMP\_4 >> $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log
 # Run Pipeline.Rnw
 ###################
 
+# TODO: Pipeline.Rnw is a resource which should not be in the user working directory
+# This resource file, like the other pipeline resources, should be placed in some location shared by all users: like /usr/local/share/<pipeline_name_dir>
+# Consider to move all template and other resource files: .Rnw, .docx, etc. to this shared location
+# Do not forget to create the corresponding variable path: PIPELINE_SHARED=$PREFIX/share/<pipeline_name_dir> with PREFIX=/usr/local
+#
 echo "$(date '+%Y%m%d %r') [Rnw filling]">> $LOG_DIR/$LOGFILE
 
 if [[ ! -e $REPORT_DIR ]]; then
