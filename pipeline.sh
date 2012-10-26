@@ -109,7 +109,7 @@ if [[ -e $PIPELINE_DEFAULT_CONFIG ]]; then
 	echo "$(date '+%Y%m%d %r') [get_pipeline_default_parameters] OK Default config parameters were loaded successfully." >> $LOG_DIR/$LOGFILE
     fi
     # check default config params type validity
-    check_params_validity 2>$ERROR_TMP
+    check_params_validity >> $LOG_DIR/$LOGFILE 2>$ERROR_TMP
     rtrn=$?
     if [[ $rtrn -ne 0 ]]; then
 	echo "$(date '+%Y%m%d %r') [check_params_validity] Failed Default parameters type checking generates errors." >> $LOG_DIR/$LOGFILE
@@ -120,7 +120,7 @@ if [[ -e $PIPELINE_DEFAULT_CONFIG ]]; then
 	echo "$(date '+%Y%m%d %r') [check_params_validity] OK Default config parameters type checking was done successfully." >> $LOG_DIR/$LOGFILE
     fi
     # check default config params interval validity
-    check_params_interval_validity 2>$ERROR_TMP
+    check_params_interval_validity >> $LOG_DIR/$LOGFILE 2>$ERROR_TMP
     rtrn=$?
     if [[ $rtrn -ne 0 ]]; then
 	echo "$(date '+%Y%m%d %r') [check_params_interval_validity] Failed Default parameters interval checking generates errors." >> $LOG_DIR/$LOGFILE
@@ -154,7 +154,7 @@ if [[ -e $PIPELINE_USER_CONFIG ]]; then
 	fi
     fi
     # check user config params type validity
-    check_params_validity 2>$ERROR_TMP
+    check_params_validity >> $LOG_DIR/$LOGFILE 2>$ERROR_TMP
     rtrn=$?
     if [[ $rtrn -ne 0 ]]; then
 	echo "$(date '+%Y%m%d %r') [check_params_validity] Failed User parameters type checking generates errors." >> $LOG_DIR/$LOGFILE
@@ -165,7 +165,7 @@ if [[ -e $PIPELINE_USER_CONFIG ]]; then
 	echo "$(date '+%Y%m%d %r') [check_params_validity] OK User config parameters type checking was done successfully." >> $LOG_DIR/$LOGFILE
     fi
     # check user config params interval validity
-    check_params_interval_validity 2>$ERROR_TMP
+    check_params_interval_validity >> $LOG_DIR/$LOGFILE 2>$ERROR_TMP
     rtrn=$?
     if [[ $rtrn -ne 0 ]]; then
 	echo "$(date '+%Y%m%d %r') [check_params_interval_validity] Failed User parameters interval checking generates errors." >> $LOG_DIR/$LOGFILE
@@ -292,7 +292,8 @@ if [[ -e $TRIMMING_DIR/$3_1_paired.fq && -e $TRIMMING_DIR/$3_2_paired.fq ]]; the
     bwa aln \
 	-n ${PARAMETERS_TABLE["bwa_aln_n"]} \
 	-R ${PARAMETERS_TABLE["bwa_aln_R"]} \
-	-t ${PARAMETERS_TABLE["bwa_aln_t"]} ${PARAMETERS_TABLE["BWA_REFERENCE_GENOME_INDEX"]} $TRIMMING_DIR/$3_2_paired.fq > $MAPPING_DIR/$3_2.sai 2>$MAPPING_TMP\_1
+	-t ${PARAMETERS_TABLE["bwa_aln_t"]} \
+	${PARAMETERS_TABLE["BWA_REFERENCE_GENOME_INDEX"]} $TRIMMING_DIR/$3_2_paired.fq > $MAPPING_DIR/$3_2.sai 2>$MAPPING_TMP\_1
 else 
     echo "File does not exists"
     exit $?
@@ -306,11 +307,11 @@ if [[ -e $MAPPING_DIR/$3_1.sai && -e $MAPPING_DIR/$3_2.sai ]]; then
     bwa sampe \
 	-n "${PARAMETERS_TABLE['bwa_sampe_n']}" \
 	-N "${PARAMETERS_TABLE['bwa_sampe_N']}" \
-	${PARAMETERS_TABLE["BWA_REFERENCE_GENOME_INDEX"]} $MAPPING_DIR/$3_1.sai $MAPPING_DIR/$3_2.sai $TRIMMING_DIR/$3_1_paired.fq $TRIMMING_DIR/$3_2_paired.fq >$MAPPING_DIR/$3.sam 2>$MAPPING_TMP\_2
+	"${PARAMETERS_TABLE['BWA_REFERENCE_GENOME_INDEX']}" $MAPPING_DIR/$3_1.sai $MAPPING_DIR/$3_2.sai $TRIMMING_DIR/$3_1_paired.fq $TRIMMING_DIR/$3_2_paired.fq >$MAPPING_DIR/$3.sam 2>$MAPPING_TMP\_2
 else
     echo ".sai files do not exists"
     exit $?
-fi 
+fi
 
 cat $MAPPING_TMP\_1 >> $MAPPING_DIR/$MAPPING_DIR_$DATE.log
 cat $MAPPING_TMP\_2 >> $MAPPING_DIR/$MAPPING_DIR_$DATE.log

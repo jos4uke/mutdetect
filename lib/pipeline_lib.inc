@@ -351,6 +351,8 @@ check_params_validity()
 		if !(declare -i value); then
 		    echo -e $not_int_err_msg >&2
 		    rtrn=5
+		    else
+		    echo -e $ok_msg
 		fi
 		;;
 	    "microindel_size_min") 
