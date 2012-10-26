@@ -22,8 +22,9 @@ ARGS=3
 DATE=$(date '+%Y_%m_%d_%H_%M_%S')
 LOGFILE=$3_$DATE\_log.txt
 WORKING_DIR=$(pwd)
-PIPELINE_DEFAULT_CONFIG="/projects/ARABIDOPSIS/SCRIPTS/PIPELINE/pipeline_default.config"
-PIPELINE_USER_CONFIG="/projects/ARABIDOPSIS/SCRIPTS/PIPELINE/pipeline_default.config" # should be in $WORKING_DIR by default
+PIPELINE_SHARED=$PREFIX/share/$(basename $0)
+PIPELINE_DEFAULT_CONFIG=$PIPELINE_SHARED/etc/pipeline_default.config
+PIPELINE_USER_CONFIG=$WORKING_DIR/pipeline_user.config # should be in $WORKING_DIR by default
 
 LOG_DIR="log"
 TRIMMING_DIR="01_Trimming"
