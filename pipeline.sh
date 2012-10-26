@@ -47,11 +47,11 @@ declare -A PARAMETERS_TABLE
 # TEST if enough args
 
 [[ $# -ne "$ARGS" ]] && { printf %s "\
-Program: $0
+Program: $(basename $0)
 Version: none
 Contact: IJPB Bioinformatics Dev Team
 
-Usage: $0 SEQfile1 SEQfile2 ECHname
+Usage: $(basename $0) SEQfile1 SEQfile2 ECHname
 
 Arguments: SEQfile1 Forward read sequences file (Illumina fastq file)
            SEQfile2 Reverse read sequences file (Illumina fastq file)
