@@ -76,19 +76,19 @@ exit 1; }
 # Create log directory
 
 if [[ -d $LOG_DIR ]]; then
-    echo "$(date '+%Y%m%d %r') [$(basename $0)] Start running the pipeline." > $LOG_DIR/$LOGFILE
-    echo "$(date '+%Y%m%d %r') [$(basename $0)] Executed command: $0 $*" >> $LOG_DIR/$LOGFILE
+    echo "$(date '+%Y%m%d %r') [$(basename $0)] Start running the pipeline." | tee $LOG_DIR/$LOGFILE 2>&1
+    echo "$(date '+%Y%m%d %r') [$(basename $0)] Executed command: $0 $*" | tee -a $LOG_DIR/$LOGFILE 2>&1
     echo "$(date '+%Y%m%d %r') [Log directory] OK $LOG_DIR directory already exists. Will write log files in this directory." >> $LOG_DIR/$LOGFILE
 else
     mkdir $LOG_DIR 2>$ERROR_TMP
     if [[ $? -ne 0 ]]; then
-	echo "$(date '+%Y%m%d %r') [Log directory] Failed Log directory, $LOG_DIR, was not created." | tee -a $ERROR_TMP 2>&1
-	echo "$(date '+%Y%m%d %r') [Pipeline error] More information can be found in $ERROR_TMP."
-	echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code 126." | tee -a $ERROR_TMP 2>&1
+	echo "$(date '+%Y%m%d %r') [Log directory] Failed Log directory, $LOG_DIR, was not created." | tee -a $ERROR_TMP 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code 126." | tee -a $ERROR_TMP 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	echo "$(date '+%Y%m%d %r') [Pipeline error] More information can be found in $ERROR_TMP." | tee -a $LOG_DIR/$LOGFILE 2>&1
 	exit 126
     else
-	echo "$(date '+%Y%m%d %r') [$(basename $0)] Start running the pipeline." > $LOG_DIR/$LOGFILE
-	echo "$(date '+%Y%m%d %r') [$(basename $0)] Executed command: $0 $*" >> $LOG_DIR/$LOGFILE
+	echo "$(date '+%Y%m%d %r') [$(basename $0)] Start running the pipeline." | tee $LOG_DIR/$LOGFILE 2>&1
+	echo "$(date '+%Y%m%d %r') [$(basename $0)] Executed command: $0 $*" | tee -a $LOG_DIR/$LOGFILE 2>&1
 	echo "$(date '+%Y%m%d %r') [Log directory] OK $LOG_DIR directory was created sucessfully. Will write log files in this directory." >> $LOG_DIR/$LOGFILE	
     fi
 fi
@@ -98,15 +98,15 @@ fi
 
 if [[ -e $1 && -s $1 ]]; then
     if [[ -e $2 && -s $2 ]]; then
-	echo "$(date '+%Y%m%d %r') [fastq input files] OK Input files exists and are not empty." >> $LOG_DIR/$LOGFILE
+	echo "$(date '+%Y%m%d %r') [fastq input files] OK Input files exists and are not empty." | tee -a $LOG_DIR/$LOGFILE 2>&1
     else 
-	echo "$(date '+%Y%m%d %r') [fastq input files] Failed Input file, $1, does not exist or is empty" >> $LOG_DIR/$LOGFILE
-	echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code 3." >> $LOG_DIR/$LOGFILE
+	echo "$(date '+%Y%m%d %r') [fastq input files] Failed Input file, $1, does not exist or is empty" | tee -a $LOG_DIR/$LOGFILE 2>&1
+	echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code 3." | tee -a $LOG_DIR/$LOGFILE 2>&1
 	exit 3 
     fi 
 else
-    echo "$(date '+%Y%m%d %r') [fastq input files] Failed Input file, $2, does not exist or is empty" >> $LOG_DIR/$LOGFILE
-    echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code 3." >> $LOG_DIR/$LOGFILE
+    echo "$(date '+%Y%m%d %r') [fastq input files] Failed Input file, $2, does not exist or is empty" | tee -a $LOG_DIR/$LOGFILE 2>&1
+    echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code 3." | tee -a $LOG_DIR/$LOGFILE 2>&1
     exit 3 
 fi
 
@@ -114,106 +114,106 @@ fi
 # else exit (error code 4) 
 
 if (( $(wc -l $1 | awk '{print $1}') == $(wc -l $2 | awk '{print $1}') )); then
-    echo "$(date '+%Y%m%d %r') [fastq input files] OK Input files have the same number of reads." >> $LOG_DIR/$LOGFILE
+    echo "$(date '+%Y%m%d %r') [fastq input files] OK Input files have the same number of reads." | tee -a $LOG_DIR/$LOGFILE 2>&1
 else
-    echo "$(date '+%Y%m%d %r') [fastq input files] Failed Input files do not have the same number of reads!" >> $LOG_DIR/$LOGFILE
-    echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code 4." >> $LOG_DIR/$LOGFILE
+    echo "$(date '+%Y%m%d %r') [fastq input files] Failed Input files do not have the same number of reads!" | tee -a $LOG_DIR/$LOGFILE 2>&1
+    echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code 4." | tee -a $LOG_DIR/$LOGFILE 2>&1
     exit 4
 fi
 
 # TEST if pipeline_default.config exists and put the parameters into a hash table
 
 if [[ -e $PIPELINE_DEFAULT_CONFIG ]]; then
-    echo "$(date '+%Y%m%d %r') [get_pipeline_default_parameters] OK $PIPELINE_DEFAULT_CONFIG default config file exists! Let's check parameters validity ..." >> $LOG_DIR/$LOGFILE
+    echo "$(date '+%Y%m%d %r') [get_pipeline_default_parameters] OK $PIPELINE_DEFAULT_CONFIG default config file exists! Let's check parameters validity ..." | tee -a $LOG_DIR/$LOGFILE 2>&1
     # load default config parameters
     get_pipeline_default_parameters $PIPELINE_DEFAULT_CONFIG 2>$ERROR_TMP
     rtrn=$?
     if [[ $rtrn -ne 0 ]]; then
-	echo "$(date '+%Y%m%d %r') [get_pipeline_default_parameters] Failed Default parameters were not loaded. An error occurs: $(cat $ERROR_TMP)" >> $LOG_DIR/$LOGFILE
-	echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code $rtrn." >> $LOG_DIR/$LOGFILE
+	echo "$(date '+%Y%m%d %r') [get_pipeline_default_parameters] Failed Default parameters were not loaded. An error occurs: $(cat $ERROR_TMP)" | tee -a $LOG_DIR/$LOGFILE 2>&1
+	echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code $rtrn." | tee -a $LOG_DIR/$LOGFILE 2>&1
 	exit $rtrn
     else
-	echo "$(date '+%Y%m%d %r') [get_pipeline_default_parameters] OK Default config parameters were loaded successfully." >> $LOG_DIR/$LOGFILE
+	echo "$(date '+%Y%m%d %r') [get_pipeline_default_parameters] OK Default config parameters were loaded successfully." | tee -a $LOG_DIR/$LOGFILE 2>&1
     fi
     # check default config params type validity
     check_params_validity >> $LOG_DIR/$LOGFILE 2>$ERROR_TMP
     rtrn=$?
     if [[ $rtrn -ne 0 ]]; then
-	echo "$(date '+%Y%m%d %r') [check_params_validity] Failed Default parameters type checking generates errors." >> $LOG_DIR/$LOGFILE
-	cat $ERROR_TMP >> $LOG_DIR/$LOGFILE
-	echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code $rtrn." >> $LOG_DIR/$LOGFILE
+	echo "$(date '+%Y%m%d %r') [check_params_validity] Failed Default parameters type checking generates errors." | tee -a $LOG_DIR/$LOGFILE 2>&1
+	cat $ERROR_TMP 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code $rtrn." | tee -a $LOG_DIR/$LOGFILE 2>&1
 	exit $rtrn
     else
-	echo "$(date '+%Y%m%d %r') [check_params_validity] OK Default config parameters type checking was done successfully." >> $LOG_DIR/$LOGFILE
+	echo "$(date '+%Y%m%d %r') [check_params_validity] OK Default config parameters type checking was done successfully." | tee -a $LOG_DIR/$LOGFILE 2>&1
     fi
     # check default config params interval validity
     check_params_interval_validity >> $LOG_DIR/$LOGFILE 2>$ERROR_TMP
     rtrn=$?
     if [[ $rtrn -ne 0 ]]; then
-	echo "$(date '+%Y%m%d %r') [check_params_interval_validity] Failed Default parameters interval checking generates errors." >> $LOG_DIR/$LOGFILE
-	cat $ERROR_TMP >> $LOG_DIR/$LOGFILE
-	echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code $rtrn." >> $LOG_DIR/$LOGFILE
+	echo "$(date '+%Y%m%d %r') [check_params_interval_validity] Failed Default parameters interval checking generates errors." | tee -a $LOG_DIR/$LOGFILE 2>&1
+	cat $ERROR_TMP | tee -a $LOG_DIR/$LOGFILE 2>&1
+	echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code $rtrn." | tee -a $LOG_DIR/$LOGFILE 2>&1
 	exit $rtrn
     else
-	echo "$(date '+%Y%m%d %r') [check_params_interval_validity] OK Default config parameters interval checking was done successfully." >> $LOG_DIR/$LOGFILE
+	echo "$(date '+%Y%m%d %r') [check_params_interval_validity] OK Default config parameters interval checking was done successfully." | tee -a $LOG_DIR/$LOGFILE 2>&1
     fi
 else 
-    echo "$(date '+%Y%m%d %r') [get_pipeline_default_parameters] Failed $PIPELINE_DEFAULT_CONFIG file does not exist." >> $LOG_DIR/$LOGFILE
-    echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code 3." >> $LOG_DIR/$LOGFILE
+    echo "$(date '+%Y%m%d %r') [get_pipeline_default_parameters] Failed $PIPELINE_DEFAULT_CONFIG file does not exist." | tee -a $LOG_DIR/$LOGFILE 2>&1
+    echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code 3." | tee -a $LOG_DIR/$LOGFILE 2>&1
     exit 3
 fi 
 
 # TEST if pipeline_user.config exists and then override default parameters if user defined parameters exist
 
 if [[ -e $PIPELINE_USER_CONFIG ]]; then
-    echo "$(date '+%Y%m%d %r') [get_pipeline_user_parameters] OK $PIPELINE_USER_CONFIG user config file exists! Let's check parameters validity ..." >> $LOG_DIR/$LOGFILE
+    echo "$(date '+%Y%m%d %r') [get_pipeline_user_parameters] OK $PIPELINE_USER_CONFIG user config file exists! Let's check parameters validity ..." | tee -a $LOG_DIR/$LOGFILE 2>&1
     # load user config parameters
     get_pipeline_user_parameters $PIPELINE_USER_CONFIG 2>$ERROR_TMP
     rtrn=$?
     if [[ $rtrn -ne 0 ]]; then
-	echo "$(date '+%Y%m%d %r') [get_pipeline_user_parameters] Failed User parameters were not loaded. An error occurs: $(cat $ERROR_TMP)" >> $LOG_DIR/$LOGFILE
-	echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code $rtrn." >> $LOG_DIR/$LOGFILE
+	echo "$(date '+%Y%m%d %r') [get_pipeline_user_parameters] Failed User parameters were not loaded. An error occurs: $(cat $ERROR_TMP)" | tee -a $LOG_DIR/$LOGFILE 2>&1
+	echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code $rtrn." | tee -a $LOG_DIR/$LOGFILE 2>&1
 	exit $rtrn
     else
-	echo "$(date '+%Y%m%d %r') [get_pipeline_user_parameters] OK User config parameters were loaded successfully." >> $LOG_DIR/$LOGFILE
+	echo "$(date '+%Y%m%d %r') [get_pipeline_user_parameters] OK User config parameters were loaded successfully." | tee -a $LOG_DIR/$LOGFILE 2>&1
 	if [[ -s $ERROR_TMP ]]; then
-	    cat $ERROR_TMP >> $LOG_DIR/$LOGFILE
+	    cat $ERROR_TMP 2>&1 >> $LOG_DIR/$LOGFILE
 	fi
     fi
     # check user config params type validity
     check_params_validity >> $LOG_DIR/$LOGFILE 2>$ERROR_TMP
     rtrn=$?
     if [[ $rtrn -ne 0 ]]; then
-	echo "$(date '+%Y%m%d %r') [check_params_validity] Failed User parameters type checking generates errors." >> $LOG_DIR/$LOGFILE
-	cat $ERROR_TMP >> $LOG_DIR/$LOGFILE
-	echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code $rtrn." >> $LOG_DIR/$LOGFILE
+	echo "$(date '+%Y%m%d %r') [check_params_validity] Failed User parameters type checking generates errors." | tee -a $LOG_DIR/$LOGFILE 2>&1
+	cat $ERROR_TMP 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code $rtrn." | tee -a $LOG_DIR/$LOGFILE 2>&1
 	exit $rtrn
     else
-	echo "$(date '+%Y%m%d %r') [check_params_validity] OK User config parameters type checking was done successfully." >> $LOG_DIR/$LOGFILE
+	echo "$(date '+%Y%m%d %r') [check_params_validity] OK User config parameters type checking was done successfully." | tee -a $LOG_DIR/$LOGFILE 2>&1
     fi
     # check user config params interval validity
-    check_params_interval_validity >> $LOG_DIR/$LOGFILE 2>$ERROR_TMP
+    check_params_interval_validity >>$LOG_DIR/$LOGFILE 2>$ERROR_TMP
     rtrn=$?
     if [[ $rtrn -ne 0 ]]; then
-	echo "$(date '+%Y%m%d %r') [check_params_interval_validity] Failed User parameters interval checking generates errors." >> $LOG_DIR/$LOGFILE
-	cat $ERROR_TMP >> $LOG_DIR/$LOGFILE
-	echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code $rtrn." >> $LOG_DIR/$LOGFILE
+	echo "$(date '+%Y%m%d %r') [check_params_interval_validity] Failed User parameters interval checking generates errors." | tee -a $LOG_DIR/$LOGFILE 2>&1
+	cat $ERROR_TMP 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code $rtrn." | tee -a $LOG_DIR/$LOGFILE 2>&1
 	exit $rtrn
     else
-	echo "$(date '+%Y%m%d %r') [check_params_interval_validity] OK User config parameters interval checking was done successfully." >> $LOG_DIR/$LOGFILE
+	echo "$(date '+%Y%m%d %r') [check_params_interval_validity] OK User config parameters interval checking was done successfully." | tee -a $LOG_DIR/$LOGFILE 2>&1
     fi
 else 
-    echo "$(date '+%Y%m%d %r') [get_pipeline_user_parameters] Failed $PIPELINE_USER_CONFIG file does not exist." >> $LOG_DIR/$LOGFILE
-    echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code 3." >> $LOG_DIR/$LOGFILE
+    echo "$(date '+%Y%m%d %r') [get_pipeline_user_parameters] Failed $PIPELINE_USER_CONFIG file does not exist." | tee -a $LOG_DIR/$LOGFILE 2>&1
+    echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code 3." | tee -a $LOG_DIR/$LOGFILE 2>&1
     exit 3
 fi
 
 # Report parameters in LOGFILE
 
-echo "$(date '+%Y%m%d %r') [parameters listing] OK All pipeline config parameters were loaded and checked successfully." >> $LOG_DIR/$LOGFILE
+echo "$(date '+%Y%m%d %r') [parameters listing] OK All pipeline config parameters were loaded and checked successfully." | tee -a $LOG_DIR/$LOGFILE 2>&1
 for i in "${!PARAMETERS_TABLE[@]}"
 do
-    echo -e "$i=${PARAMETERS_TABLE[$i]}" >> $LOG_DIR/$LOGFILE
+    echo -e "$i=${PARAMETERS_TABLE[$i]}" | tee -a $LOG_DIR/$LOGFILE 2>&1
 done
 
 
@@ -223,7 +223,7 @@ done
 
 # If they do not already exist, create directories to store QC and Trimming results
 if [[ -d $TRIMMING_DIR ]]; then
-    echo "$(date '+%Y%m%d %r') [Trimming] Start quality control and trimming process" | tee -a $TRIMMING_DIR/$TRIMMING_DIR_$DATE.log 2>&1 >> $LOG_DIR/$LOGFILE
+    echo "$(date '+%Y%m%d %r') [Trimming] Start quality control and trimming process" | tee -a $TRIMMING_DIR/$TRIMMING_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
     echo "$(date '+%Y%m%d %r') [Trimming directory] OK $TRIMMING_DIR directory already exists. Will write trimming output in this directory." | tee -a $TRIMMING_DIR/$TRIMMING_DIR_$DATE.log 2>&1 >> $LOG_DIR/$LOGFILE
 else
     mkdir $TRIMMING_DIR 2>$ERROR_TMP
