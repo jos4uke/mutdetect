@@ -221,32 +221,85 @@ done
 # SECTION TRIMMING
 #######################
 
-# If they do not already exist, create directories to store QC and Filtering results
-
-if [[ ! -e $TRIMMING_DIR ]]; then
-    mkdir $TRIMMING_DIR 
+# If they do not already exist, create directories to store QC and Trimming results
+if [[ -d $TRIMMING_DIR ]]; then
+    echo "$(date '+%Y%m%d %r') [Trimming] Start quality control and trimming process" | tee -a $TRIMMING_DIR/$TRIMMING_DIR_$DATE.log 2>&1 >> $LOG_DIR/$LOGFILE
+    echo "$(date '+%Y%m%d %r') [Trimming directory] OK $TRIMMING_DIR directory already exists. Will write trimming output in this directory." | tee -a $TRIMMING_DIR/$TRIMMING_DIR_$DATE.log 2>&1 >> $LOG_DIR/$LOGFILE
+else
+    mkdir $TRIMMING_DIR 2>$ERROR_TMP
+    if [[ $? -ne 0 ]]; then
+	echo "$(date '+%Y%m%d %r') [Trimming directory] Failed Trimming directory, $TRIMMING_DIR, was not created." | tee -a $ERROR_TMP 2>&1 | tee -a $TRIMMING_DIR/$TRIMMING_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code 126." | tee -a $ERROR_TMP 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	echo "$(date '+%Y%m%d %r') [Pipeline error] More information can be found in $ERROR_TMP." | tee -a $LOG_DIR/$LOGFILE 2>&1
+	exit 126
+    else
+	echo "$(date '+%Y%m%d %r') [Trimming] Start quality control and trimming process" | tee -a $TRIMMING_DIR/$TRIMMING_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	echo "$(date '+%Y%m%d %r') [Trimming directory] OK $TRIMMING_DIR directory was created sucessfully. Will write trimming output in this directory." | tee -a $TRIMMING_DIR/$TRIMMING_DIR_$DATE.log 2>&1 >> $LOG_DIR/$LOGFILE	
+    fi
 fi
 
-if [[ ! -e  $TRIMMING_DIR/$3_1_Qual_Raw_Reads ]]; then
-    mkdir $TRIMMING_DIR/$3_1_Qual_Raw_Reads
+if [[ -d  $TRIMMING_DIR/$3_1_Qual_Raw_Reads ]]; then
+    echo "$(date '+%Y%m%d %r') [Forward Raw Read Quality Control directory] OK $TRIMMING_DIR/$3_1_Qual_Raw_Reads directory already exists. Will write fastqc output in this directory." | tee -a $TRIMMING_DIR/$TRIMMING_DIR_$DATE.log 2>&1 >> $LOG_DIR/$LOGFILE
+else
+    mkdir $TRIMMING_DIR/$3_1_Qual_Raw_Reads 2>$ERROR_TMP
+    if [[ $? -ne 0 ]]; then
+	echo "$(date '+%Y%m%d %r') [Forward Raw Read Quality Control directory] Failed Quality directory, $TRIMMING_DIR/$3_1_Qual_Raw_Reads, was not created." | tee -a $ERROR_TMP 2>&1 | tee -a $TRIMMING_DIR/$TRIMMING_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code 126." | tee -a $ERROR_TMP 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	echo "$(date '+%Y%m%d %r') [Pipeline error] More information can be found in $ERROR_TMP." | tee -a $LOG_DIR/$LOGFILE 2>&1	
+	exit 126
+    else
+	echo "$(date '+%Y%m%d %r') [Forward Raw Read Quality Control directory] OK $TRIMMING_DIR/$3_1_Qual_Raw_Reads directory was created sucessfully. Will write fastqc output in this directory." | tee -a $TRIMMING_DIR/$TRIMMING_DIR_$DATE.log 2>&1 >> $LOG_DIR/$LOGFILE	
+    fi
 fi
 
-if [[ ! -e  $TRIMMING_DIR/$3_2_Qual_Raw_Reads ]]; then
-    mkdir $TRIMMING_DIR/$3_2_Qual_Raw_Reads 
+if [[ -d  $TRIMMING_DIR/$3_2_Qual_Raw_Reads ]]; then
+    echo "$(date '+%Y%m%d %r') [Reverse Raw Read Quality Control directory] OK $TRIMMING_DIR/$3_2_Qual_Raw_Reads directory already exists. Will write fastqc output in this directory." | tee -a $TRIMMING_DIR/$TRIMMING_DIR_$DATE.log 2>&1 >> $LOG_DIR/$LOGFILE
+else
+    mkdir $TRIMMING_DIR/$3_2_Qual_Raw_Reads 2>$ERROR_TMP
+    if [[ $? -ne 0 ]]; then
+	echo "$(date '+%Y%m%d %r') [Reverse Raw Read Quality Control directory] Failed Quality directory, $TRIMMING_DIR/$3_2_Qual_Raw_Reads, was not created." | tee -a $ERROR_TMP 2>&1 | tee -a $TRIMMING_DIR/$TRIMMING_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code 126." | tee -a $ERROR_TMP 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	echo "$(date '+%Y%m%d %r') [Pipeline error] More information can be found in $ERROR_TMP." | tee -a $LOG_DIR/$LOGFILE 2>&1
+	Exit 126
+    else
+	echo "$(date '+%Y%m%d %r') [Reverse Raw Read Quality Control directory] OK $TRIMMING_DIR/$3_2_Qual_Raw_Reads directory was created sucessfully. Will write fastqc output in this directory." | tee -a $TRIMMING_DIR/$TRIMMING_DIR_$DATE.log 2>&1 >> $LOG_DIR/$LOGFILE	
+    fi
 fi
 
 # Check raw reads quality
 
-echo "# $(date '+%Y%m%d %r') [fastqc] QC directories exist ! Let's check raw reads quality ..." >> $LOG_DIR/$LOGFILE
+echo "$(date '+%Y%m%d %r') [fastqc] QC directories exist ! Let's check raw reads quality ..." | tee -a $TRIMMING_DIR/$TRIMMING_DIR_$DATE.log 2>&1 >> $LOG_DIR/$LOGFILE
 
-fastqc $1 -o $TRIMMING_DIR/$3_1_Qual_Raw_Reads 2>$TRIMMING_DIR/$TRIMMING_DIR_$DATE.log >> $TRIMMING_DIR/$TRIMMING_DIR_$DATE.log
-fastqc $2 -o $TRIMMING_DIR/$3_2_Qual_Raw_Reads 2>$TRIMMING_DIR/$TRIMMING_DIR_$DATE.log >> $TRIMMING_DIR/$TRIMMING_DIR_$DATE.log
+echo "$(date '+%Y%m%d %r') [fastqc] Check raw reads quality in file $1" | tee -a $TRIMMING_DIR/$TRIMMING_DIR_$DATE.log 2>&1 >> $LOG_DIR/$LOGFILE
+fastqc $1 -o $TRIMMING_DIR/$3_1_Qual_Raw_Reads 2>&1 | tee $ERROR_TMP 2>&1 >> $TRIMMING_DIR/$TRIMMING_DIR_$DATE.log
+rtrn=$?
+if [[ $rtrn -ne 0 ]]; then
+    echo "$(date '+%Y%m%d %r') [fastqc] Failed An error occured during quality control of raw reads in file $1" | tee -a $ERROR_TMP 2>&1 | tee -a $TRIMMING_DIR/$TRIMMING_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+    echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code $rtrn." | tee -a $ERROR_TMP 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+    echo "$(date '+%Y%m%d %r') [Pipeline error] More information can be found in $ERROR_TMP." | tee -a $LOG_DIR/$LOGFILE 2>&1
+    exit $rtrn
+else
+    echo "$(date '+%Y%m%d %r') [fastqc] OK Quality Control of raw reads in file $1 was done sucessfully." | tee -a $TRIMMING_DIR/$TRIMMING_DIR_$DATE.log 2>&1 >> $LOG_DIR/$LOGFILE
+fi
+
+echo "$(date '+%Y%m%d %r') [fastqc] Check raw reads quality in file $2" | tee -a $TRIMMING_DIR/$TRIMMING_DIR_$DATE.log 2>&1 >> $LOG_DIR/$LOGFILE
+fastqc $2 -o $TRIMMING_DIR/$3_2_Qual_Raw_Reads 2>&1 | tee $ERROR_TMP 2>&1 >> $TRIMMING_DIR/$TRIMMING_DIR_$DATE.log
+rtrn=$?
+if [[ $rtrn -ne 0 ]]; then
+    Echo "$(date '+%Y%m%d %r') [fastqc] Failed An error occured during quality control of raw reads in file $2" | tee -a $ERROR_TMP 2>&1 | tee -a $TRIMMING_DIR/$TRIMMING_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+    echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code $rtrn." | tee -a $ERROR_TMP 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+    echo "$(date '+%Y%m%d %r') [Pipeline error] More information can be found in $ERROR_TMP." | tee -a $LOG_DIR/$LOGFILE 2>&1
+    exit $rtrn
+else
+    echo "$(date '+%Y%m%d %r') [fastqc] OK Quality Control of raw reads in file $2 was done sucessfully." | tee -a $TRIMMING_DIR/$TRIMMING_DIR_$DATE.log 2>&1 >> $LOG_DIR/$LOGFILE
+fi
 
 # TODO: Ici recuperer les infos et graphes de qualité
+# exits the pipeline if some quality control failed (duplication rate)
 
 # Trim reads by using Trimmomatic
 
-echo "# $(date '+%Y%m%d %r') [Trimmomatic]  Let's trim raw reads ..." >> $LOG_DIR/$LOGFILE
+echo "# $(date '+%Y%m%d %r') [Trimmomatic] Let's trim raw reads ..." | tee -a $TRIMMING_DIR/$TRIMMING_DIR_$DATE.log 2>&1 >> $LOG_DIR/$LOGFILE
 
 if [[ ${PARAMETERS_TABLE["QUAL_ENCODING"]} -eq 33 ]]; then
     java -classpath /usr/local/src/Trimmomatic-0.22/trimmomatic-0.22.jar org.usadellab.trimmomatic.TrimmomaticPE \
@@ -260,8 +313,9 @@ if [[ ${PARAMETERS_TABLE["QUAL_ENCODING"]} -eq 33 ]]; then
 	LEADING:${PARAMETERS_TABLE["trimmo_leading_qual_min"]}  \
 	TRAILING:${PARAMETERS_TABLE["trimmo_trailing_qual_min"]}  \
 	SLIDINGWINDOW:${PARAMETERS_TABLE["trimmo_sliding_window_size"]}:${PARAMETERS_TABLE["trimmo_sliding_window_qual"]} \
-	MINLEN:${PARAMETERS_TABLE["trimmo_min_length"]} 2>$TRIMMING_TMP \
-	>> $TRIMMING_TMP
+	MINLEN:${PARAMETERS_TABLE["trimmo_min_length"]} \
+	2>$ERROR_TMP >> $TRIMMING_TMP
+        rtrn=$?
     else 
     java -classpath /usr/local/src/Trimmomatic-0.22/trimmomatic-0.22.jar org.usadellab.trimmomatic.TrimmomaticPE \
 	-threads ${PARAMETERS_TABLE["trimmo_thread_number"]} \
@@ -274,26 +328,76 @@ if [[ ${PARAMETERS_TABLE["QUAL_ENCODING"]} -eq 33 ]]; then
 	LEADING:${PARAMETERS_TABLE["trimmo_leading_qual_min"]}  \
 	TRAILING:${PARAMETERS_TABLE["trimmo_trailing_qual_min"]}  \
 	SLIDINGWINDOW:${PARAMETERS_TABLE["trimmo_sliding_window_size"]}:${PARAMETERS_TABLE["trimmo_sliding_window_qual"]} \
-	MINLEN:${PARAMETERS_TABLE["trimmo_min_length"]} 2>$TRIMMING_TMP \
-	>> $TRIMMING_TMP
+	MINLEN:${PARAMETERS_TABLE["trimmo_min_length"]} \
+	2>$ERROR_TMP  >> $TRIMMING_TMP
+        rtrn=$?
 fi
 
-cat $TRIMMING_TMP >> $TRIMMING_DIR/$TRIMMING_DIR_$DATE.log
-cat $TRIMMING_TMP >> $LOG_DIR/$LOGFILE
+if [[ $rtrn -ne 0 ]]; then
+    cat $TRIMMING_TMP 2>&1 | tee -a $ERROR_TMP 2>&1 | tee -a $TRIMMING_DIR/$TRIMMING_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+    echo "$(date '+%Y%m%d %r') [Trimmomatic] Failed An error occured during trimming process." | tee -a $ERROR_TMP 2>&1 | tee -a $TRIMMING_DIR/$TRIMMING_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+    echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code $rtrn." | tee -a $ERROR_TMP 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+    echo "$(date '+%Y%m%d %r') [Pipeline error] More information can be found in $ERROR_TMP." | tee -a $LOG_DIR/$LOGFILE 2>&1
+    exit $rtrn
+else
+    cat $TRIMMING_TMP | tee -a $TRIMMING_DIR/$TRIMMING_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+    echo "$(date '+%Y%m%d %r') [Trimmomatic] OK Trimming of raw reads was done sucessfully." | tee -a $TRIMMING_DIR/$TRIMMING_DIR_$DATE.log 2>&1 >> $LOG_DIR/$LOGFILE
+fi 
 
 # Check trimmed reads Quality
 
-if [[ ! -e  $TRIMMING_DIR/$3_1_Qual_Trim_Reads ]]; then
-    mkdir $TRIMMING_DIR/$3_1_Qual_Trim_Reads
+echo "$(date '+%Y%m%d %r') [fastqc] Let's check trimmed reads quality ..." | tee -a $TRIMMING_DIR/$TRIMMING_DIR_$DATE.log 2>&1 >> $LOG_DIR/$LOGFILE
+
+if [[ -d  $TRIMMING_DIR/$3_1_Qual_Trim_Reads ]]; then
+    echo "$(date '+%Y%m%d %r') [Forward Trimmed Read Quality Control directory] OK $TRIMMING_DIR/$3_1_Qual_Trim_Reads directory already exists. Will write fastqc output in this directory." | tee -a $TRIMMING_DIR/$TRIMMING_DIR_$DATE.log 2>&1 >> $LOG_DIR/$LOGFILE
+else
+    mkdir $TRIMMING_DIR/$3_1_Qual_Trim_Reads 2>$ERROR_TMP
+    if [[ $? -ne 0 ]]; then
+	echo "$(date '+%Y%m%d %r') [Forward Trimmed Read Quality Control directory] Failed Quality directory, $TRIMMING_DIR/$3_1_Qual_Trim_Reads, was not created." | tee -a $ERROR_TMP 2>&1 | tee -a $TRIMMING_DIR/$TRIMMING_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code 126." | tee -a $ERROR_TMP 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	echo "$(date '+%Y%m%d %r') [Pipeline error] More information can be found in $ERROR_TMP." | tee -a $LOG_DIR/$LOGFILE 2>&1	
+	exit 126
+    else
+	echo "$(date '+%Y%m%d %r') [Forward Trimmed Read Quality Control directory] OK $TRIMMING_DIR/$3_1_Qual_Trim_Reads directory was created sucessfully. Will write fastqc output in this directory." | tee -a $TRIMMING_DIR/$TRIMMING_DIR_$DATE.log 2>&1 >> $LOG_DIR/$LOGFILE
+    fi
 fi
 
-if [[ ! -e  $TRIMMING_DIR/$3_2_Qual_Trim_Reads ]]; then
-    mkdir $TRIMMING_DIR/$3_2_Qual_Trim_Reads 
+if [[ -d  $TRIMMING_DIR/$3_2_Qual_Trim_Reads ]]; then
+    echo "$(date '+%Y%m%d %r') [Reverse Trimmed Read Quality Control directory] OK $TRIMMING_DIR/$3_2_Qual_Trim_Reads directory already exists. Will write fastqc output in this directory." | tee -a $TRIMMING_DIR/$TRIMMING_DIR_$DATE.log 2>&1 >> $LOG_DIR/$LOGFILE
+else
+    mkdir $TRIMMING_DIR/$3_2_Qual_Trim_Reads 2>$ERROR_TMP
+    if [[ $? -ne 0 ]]; then
+	echo "$(date '+%Y%m%d %r') [Reverse Trimmed Read Quality Control directory] Failed Quality directory, $TRIMMING_DIR/$3_2_Qual_Trim_Reads, was not created." | tee -a $ERROR_TMP 2>&1 | tee -a $TRIMMING_DIR/$TRIMMING_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code 126." | tee -a $ERROR_TMP 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	echo "$(date '+%Y%m%d %r') [Pipeline error] More information can be found in $ERROR_TMP." | tee -a $LOG_DIR/$LOGFILE 2>&1
+	Exit 126
+    else
+	echo "$(date '+%Y%m%d %r') [Reverse Trimmed Read Quality Control directory] OK $TRIMMING_DIR/$3_2_Qual_Trim_Reads directory was created sucessfully. Will write fastqc output in this directory." | tee -a $TRIMMING_DIR/$TRIMMING_DIR_$DATE.log 2>&1 >> $LOG_DIR/$LOGFILE
 fi
 
-fastqc $TRIMMING_DIR/$3_1_paired.fq -o $TRIMMING_DIR/$3_1_Qual_Trim_Reads 2>$TRIMMING_DIR/$TRIMMING_DIR_$DATE.log >> $TRIMMING_DIR/$TRIMMING_DIR_$DATE.log
-fastqc $TRIMMING_DIR/$3_2_paired.fq -o $TRIMMING_DIR/$3_2_Qual_Trim_Reads 2>$TRIMMING_DIR/$TRIMMING_DIR_$DATE.log >> $TRIMMING_DIR/$TRIMMING_DIR_$DATE.log
+echo "$(date '+%Y%m%d %r') [fastqc] Check trimmed reads quality in file $TRIMMING_DIR/$3_1_paired.fq" | tee -a $TRIMMING_DIR/$TRIMMING_DIR_$DATE.log 2>&1 >> $LOG_DIR/$LOGFILE
+fastqc $TRIMMING_DIR/$3_1_paired.fq -o $TRIMMING_DIR/$3_1_Qual_Trim_Reads 2>&1 | tee $ERROR_TMP 2>&1 >> $TRIMMING_DIR/$TRIMMING_DIR_$DATE.log
+rtrn=$?
+if [[ $rtrn -ne 0 ]]; then
+    echo "$(date '+%Y%m%d %r') [fastqc] Failed An error occured during quality control of trimmed reads in file $TRIMMING_DIR/$3_1_paired.fq" | tee -a $ERROR_TMP 2>&1 | tee -a $TRIMMING_DIR/$TRIMMING_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+    echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code $rtrn." | tee -a $ERROR_TMP 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+    echo "$(date '+%Y%m%d %r') [Pipeline error] More information can be found in $ERROR_TMP." | tee -a $LOG_DIR/$LOGFILE 2>&1
+    exit $rtrn
+else
+    echo "$(date '+%Y%m%d %r') [fastqc] OK Quality Control of trimmed reads in file $TRIMMING_DIR/$3_1_paired.fq was done sucessfully." | tee -a $TRIMMING_DIR/$TRIMMING_DIR_$DATE.log 2>&1 >> $LOG_DIR/$LOGFILE
+fi
 
+echo "$(date '+%Y%m%d %r') [fastqc] Check trimmed reads quality in file $TRIMMING_DIR/$3_2_paired.fq" | tee -a $TRIMMING_DIR/$TRIMMING_DIR_$DATE.log 2>&1 >> $LOG_DIR/$LOGFILE
+fastqc $TRIMMING_DIR/$3_2_paired.fq -o $TRIMMING_DIR/$3_2_Qual_Trim_Reads 2>&1 | tee $ERROR_TMP 2>&1 >> $TRIMMING_DIR/$TRIMMING_DIR_$DATE.log
+rtrn=$?
+if [[ $rtrn -ne 0 ]]; then
+    echo "$(date '+%Y%m%d %r') [fastqc] Failed An error occured during quality control of trimmed reads in file $TRIMMING_DIR/$3_2_paired.fq" | tee -a $ERROR_TMP 2>&1 | tee -a $TRIMMING_DIR/$TRIMMING_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+    echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code $rtrn." | tee -a $ERROR_TMP 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+    echo "$(date '+%Y%m%d %r') [Pipeline error] More information can be found in $ERROR_TMP." | tee -a $LOG_DIR/$LOGFILE 2>&1
+    exit $rtrn
+else
+    echo "$(date '+%Y%m%d %r') [fastqc] OK Quality Control of trimmed reads in file $TRIMMING_DIR/$3_2_paired.fq was done sucessfully." | tee -a $TRIMMING_DIR/$TRIMMING_DIR_$DATE.log 2>&1 >> $LOG_DIR/$LOGFILE
+fi
 
 ########################
 # SECTION MAPPING
