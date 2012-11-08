@@ -260,7 +260,7 @@ else
 	echo "$(date '+%Y%m%d %r') [Reverse Raw Read Quality Control directory] Failed Quality directory, $TRIMMING_DIR/$3_2_Qual_Raw_Reads, was not created." | tee -a $ERROR_TMP 2>&1 | tee -a $TRIMMING_DIR/$TRIMMING_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
 	echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code 126." | tee -a $ERROR_TMP 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
 	echo "$(date '+%Y%m%d %r') [Pipeline error] More information can be found in $ERROR_TMP." | tee -a $LOG_DIR/$LOGFILE 2>&1
-	Exit 126
+	exit 126
     else
 	echo "$(date '+%Y%m%d %r') [Reverse Raw Read Quality Control directory] OK $TRIMMING_DIR/$3_2_Qual_Raw_Reads directory was created sucessfully. Will write fastqc output in this directory." | tee -a $TRIMMING_DIR/$TRIMMING_DIR_$DATE.log 2>&1 >> $LOG_DIR/$LOGFILE	
     fi
@@ -370,9 +370,10 @@ else
 	echo "$(date '+%Y%m%d %r') [Reverse Trimmed Read Quality Control directory] Failed Quality directory, $TRIMMING_DIR/$3_2_Qual_Trim_Reads, was not created." | tee -a $ERROR_TMP 2>&1 | tee -a $TRIMMING_DIR/$TRIMMING_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
 	echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code 126." | tee -a $ERROR_TMP 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
 	echo "$(date '+%Y%m%d %r') [Pipeline error] More information can be found in $ERROR_TMP." | tee -a $LOG_DIR/$LOGFILE 2>&1
-	Exit 126
+	exit 126
     else
 	echo "$(date '+%Y%m%d %r') [Reverse Trimmed Read Quality Control directory] OK $TRIMMING_DIR/$3_2_Qual_Trim_Reads directory was created sucessfully. Will write fastqc output in this directory." | tee -a $TRIMMING_DIR/$TRIMMING_DIR_$DATE.log 2>&1 >> $LOG_DIR/$LOGFILE
+    fi
 fi
 
 echo "$(date '+%Y%m%d %r') [fastqc] Check trimmed reads quality in file $TRIMMING_DIR/$3_1_paired.fq" | tee -a $TRIMMING_DIR/$TRIMMING_DIR_$DATE.log 2>&1 >> $LOG_DIR/$LOGFILE
@@ -665,4 +666,4 @@ echo |awk -v time="$SECONDS" '{print strftime("%Hh:%Mm:%Ss", time, 1)}' | tee -a
 echo "$(date '+%Y%m%d %r') [$(basename $0)] Exits the pipeline." | tee -a $LOG_DIR/$LOGFILE 2>&1
 echo "$(date '+%Y%m%d %r') [$(basename $0)] More information about the analysis can be found in $LOG_DIR/$LOGFILE" | tee -a $LOG_DIR/$LOGFILE 2>&1
 
-exit 0
+#exit 0
