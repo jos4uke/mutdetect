@@ -521,7 +521,9 @@ echo "$(date '+%Y%m%d %r') [Filter end] Add the header to filtered sam file" >> 
     # Convert SAM to BAM
 if [[ -e $FILTER_DIR/$3_mapped_MAPQ.sam ]]; then
     echo "# sam file exists ! Start to convert sam to bam ..." >> $LOG_DIR/$LOGFILE
-    samtools view -bS  $FILTER_DIR/$3_mapped_MAPQ.sam > $FILTER_DIR/$3.bam 2>$FILTER_TMP\_1
+    samtools view \
+	-$([[ ${PARAMETERS_TABLE["samtools_view_b"]} -eq "TRUE" ]] && echo -ne "b")$([[ ${PARAMETERS_TABLE["samtools_view_S"]} -eq "TRUE" ]] && echo -ne "S") \
+	$FILTER_DIR/$3_mapped_MAPQ.sam > $FILTER_DIR/$3.bam 2>$FILTER_TMP\_1
     echo "$(date '+%Y%m%d %r') [Filter: Convert sam to bam] $FILTER_DIR/$3.bam" >> $LOG_DIR/$LOGFILE
     cat $FILTER_TMP\_1 >> $FILTER_DIR/$FILTER_DIR_$DATE.log
 else
@@ -566,7 +568,11 @@ if [[ -e $FILTER_DIR/$3_sorted.bam ]]; then
     echo "# Sorted bam file exists ! Start to index fasta genome and compute ber base depth ..." >> $LOG_DIR/$LOGFILE    
     #samtools faidx ${PARAMETERS_TABLE["REFERENCE_GENOME_FASTA"]} 2>$ANALYSIS_TMP\_1
     # This step will be done one time
-    samtools mpileup -B -Q 20 -u -f ${PARAMETERS_TABLE["REFERENCE_GENOME_FASTA"]} $FILTER_DIR/$3_sorted.bam > $ANALYSIS_DIR/$3.bcf 2>$ANALYSIS_TMP\_2
+    samtools mpileup \
+	-$([[ ${PARAMETERS_TABLE["samtools_mpileup_B"]} -eq "TRUE" ]] && echo -ne "B") \
+	-$([[ ${PARAMETERS_TABLE["samtools_mpileup_Q"]} ]] && echo -ne "Q" ${PARAMETERS_TABLE["samtools_mpileup_Q"]}) \
+	-$([[ ${PARAMETERS_TABLE["samtools_mpileup_u"]} -eq "TRUE" ]] && echo -ne "u") \
+	-$([[ ${PARAMETERS_TABLE["samtools_mpileup_f"]} -eq "TRUE" ]] && echo -ne "f") ${PARAMETERS_TABLE["REFERENCE_GENOME_FASTA"]} $FILTER_DIR/$3_sorted.bam > $ANALYSIS_DIR/$3.bcf 2>$ANALYSIS_TMP\_2
     # TODO mpileup parameters
     #echo "$(date '+%Y%m%d %r') [Analysis: faidx]">> $LOG_DIR/$LOGFILE
     #cat $ANALYSIS_TMP\_1 >> $LOG_DIR/$LOGFILE
@@ -581,7 +587,7 @@ fi
 
 if [[ -e $ANALYSIS_DIR/$3.bcf ]]; then
     echo "# bcf file exists ! Start to call variant" >> $LOG_DIR/$LOGFILE   
-    bcftools view -cvg $ANALYSIS_DIR/$3.bcf > $ANALYSIS_DIR/$3.vcf 2>$ANALYSIS_TMP\_3
+    bcftools view -$([[ ${PARAMETERS_TABLE["bcftools_view_c"]} -eq "TRUE" ]] && echo -ne "c")$([[ ${PARAMETERS_TABLE["bcftools_view_v"]} -eq "TRUE" ]] && echo -ne "v")$([[ ${PARAMETERS_TABLE["bcftools_view_g"]} -eq "TRUE" ]] && echo -ne "g") $ANALYSIS_DIR/$3.bcf > $ANALYSIS_DIR/$3.vcf 2>$ANALYSIS_TMP\_3
     echo "$(date '+%Y%m%d %r') [Analysis: bcftools view] $3.vcf">> $LOG_DIR/$LOGFILE
     cat $ANALYSIS_TMP\_3 >> $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log
 else
@@ -597,14 +603,14 @@ fi
 
 if [[ -e $ANALYSIS_DIR/$3.vcf ]]; then
     echo "# vcf file exists ! Start to compress it ..." >> $LOG_DIR/$LOGFILE   
-    bgzip -fc $ANALYSIS_DIR/$3.vcf > $ANALYSIS_DIR/$3.vcf.gz
+    bgzip -$([[ ${PARAMETERS_TABLE["bgzip_f"]} -eq "TRUE" ]] && echo -ne "f")$([[ ${PARAMETERS_TABLE["bgzip_c"]} -eq "TRUE" ]] && echo -ne "c") $ANALYSIS_DIR/$3.vcf > $ANALYSIS_DIR/$3.vcf.gz
     # TO DO Standard error
     echo "$(date '+%Y%m%d %r') [Analysis: Compress vcf] $3.vcf.gz">> $LOG_DIR/$LOGFILE
-    tabix -p vcf -f $ANALYSIS_DIR/$3.vcf.gz
+    tabix -$([[ ${PARAMETERS_TABLE["tabix_p"]} ]] && echo -ne "p" ${PARAMETERS_TABLE["tabix_p"]}) -$([[ ${PARAMETERS_TABLE["tabix_f"]} -eq "TRUE" ]] && echo -ne "f") $ANALYSIS_DIR/$3.${PARAMETERS_TABLE["tabix_p"]}.gz
     # TO DO Standard error
-    echo "$(date '+%Y%m%d %r') [Analysis: tabix (Index compressed vcf)] $3.vcf.gz">> $LOG_DIR/$LOGFILE
+    echo "$(date '+%Y%m%d %r') [Analysis: tabix (Index compressed ${PARAMETERS_TABLE['tabix_p']})] $3.${PARAMETERS_TABLE['tabix_p']}.gz">> $LOG_DIR/$LOGFILE
 else
-    echo "VCF file does not exist"
+    echo "${PARAMETERS_TABLE['tabix_p']} file does not exist"
     exit $?
 fi  
  

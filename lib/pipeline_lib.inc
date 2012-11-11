@@ -3,6 +3,23 @@
 # PIPELINE FUNCTIONS LIBRARY
 #
 
+#-------------------
+# in_array function
+#
+# Check if a value exists in an array
+# @param $1 mixed  Needle  
+# @param $2 array  Haystack
+# @return  Success (0) if value exists, Failure (1) otherwise
+# Usage: in_array "$needle" "${haystack[@]}"
+# See: http://fvue.nl/wiki/Bash:_Check_if_array_element_exists
+in_array() {
+    local hay needle=$1 hays=$2
+    for hay in "${hays[@]}"; do
+        [[ $hay -eq $needle ]] && return 0
+    done
+    return 1
+}
+
 #------------------------------------------
 # get_pipeline_default_parameters function
 # 
@@ -257,7 +274,7 @@ check_params_validity()
 		    echo -e $ok_msg
 		fi
 		;;
-	    "trimmo_slinding_window_size") 
+	    "trimmo_sliding_window_size") 
 		echo -e $check_value_type_msg
 		if !(declare -i value); then
 		    echo -e $not_int_err_msg >&2
@@ -371,6 +388,124 @@ check_params_validity()
 		    rtrn=5
 		    else
 		    echo -e $ok_msg
+		fi
+		;;
+	    "samtools_view_b") 
+		echo -e $check_value_type_msg
+		if [[ $value -eq "TRUE" || $value -eq "FALSE" || $value -eq 1 || $value -eq 0 ]]; then
+		    echo -e $ok_msg
+		else
+		    echo -e $bool_err_msg >&2
+		    rtrn=5
+		fi
+		;;
+	    "samtools_view_S") 
+		echo -e $check_value_type_msg
+		if [[ $value -eq "TRUE" || $value -eq "FALSE" || $value -eq 1 || $value -eq 0 ]]; then
+		    echo -e $ok_msg
+		else
+		    echo -e $bool_err_msg >&2
+		    rtrn=5
+		fi
+		;;
+	    "samtools_mpileup_B") 
+		echo -e $check_value_type_msg
+		if [[ $value -eq "TRUE" || $value -eq "FALSE" || $value -eq 1 || $value -eq 0 ]]; then
+		    echo -e $ok_msg
+		else
+		    echo -e $bool_err_msg >&2
+		    rtrn=5
+		fi
+		;;
+	    "samtools_mpileup_u") 
+		echo -e $check_value_type_msg
+		if [[ $value -eq "TRUE" || $value -eq "FALSE" || $value -eq 1 || $value -eq 0 ]]; then
+		    echo -e $ok_msg
+		else
+		    echo -e $bool_err_msg >&2
+		    rtrn=5
+		fi
+		;;
+	    "samtools_mpileup_f") 
+		echo -e $check_value_type_msg
+		if [[ $value -eq "TRUE" || $value -eq "FALSE" || $value -eq 1 || $value -eq 0 ]]; then
+		    echo -e $ok_msg
+		else
+		    echo -e $bool_err_msg >&2
+		    rtrn=5
+		fi
+		;;
+	    "samtools_mpileup_Q") 
+		echo -e $check_value_type_msg
+		if !(declare -i value); then
+		    echo -e $not_int_err_msg >&2
+		    rtrn=5
+		    else
+		    echo -e $ok_msg
+		fi
+		;;
+	    "bcftools_view_c") 
+		echo -e $check_value_type_msg
+		if [[ $value -eq "TRUE" || $value -eq "FALSE" || $value -eq 1 || $value -eq 0 ]]; then
+		    echo -e $ok_msg
+		else
+		    echo -e $bool_err_msg >&2
+		    rtrn=5
+		fi
+		;;
+	    "bcftools_view_v") 
+		echo -e $check_value_type_msg
+		if [[ $value -eq "TRUE" || $value -eq "FALSE" || $value -eq 1 || $value -eq 0 ]]; then
+		    echo -e $ok_msg
+		else
+		    echo -e $bool_err_msg >&2
+		    rtrn=5
+		fi
+		;;
+	    "bcftools_view_g") 
+		echo -e $check_value_type_msg
+		if [[ $value -eq "TRUE" || $value -eq "FALSE" || $value -eq 1 || $value -eq 0 ]]; then
+		    echo -e $ok_msg
+		else
+		    echo -e $bool_err_msg >&2
+		    rtrn=5
+		fi
+		;;
+	    "bgzip_f") 
+		echo -e $check_value_type_msg
+		if [[ $value -eq "TRUE" || $value -eq "FALSE" || $value -eq 1 || $value -eq 0 ]]; then
+		    echo -e $ok_msg
+		else
+		    echo -e $bool_err_msg >&2
+		    rtrn=5
+		fi
+		;;
+	    "bgzip_c") 
+		echo -e $check_value_type_msg
+		if [[ $value -eq "TRUE" || $value -eq "FALSE" || $value -eq 1 || $value -eq 0 ]]; then
+		    echo -e $ok_msg
+		else
+		    echo -e $bool_err_msg >&2
+		    rtrn=5
+		fi
+		;;
+	    "tabix_f") 
+		echo -e $check_value_type_msg
+		if [[ $value -eq "TRUE" || $value -eq "FALSE" || $value -eq 1 || $value -eq 0 ]]; then
+		    echo -e $ok_msg
+		else
+		    echo -e $bool_err_msg >&2
+		    rtrn=5
+		fi
+		;;
+	    "tabix_p") 
+		echo -e $check_format_name_msg
+		tabix_formats=("gff" "bed" "sam" "vcf")
+		if ($(in_array "$value" "${tabix_formats[@]}")); then
+		    echo -e $ok_msg
+		else
+		    echo -e $format_name_err_msg >&2
+		    rtrn=5
 		fi
 		;;
 	    *) 
