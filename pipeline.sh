@@ -286,7 +286,7 @@ echo "$(date '+%Y%m%d %r') [fastqc] Check raw reads quality in file $2" | tee -a
 fastqc $2 -o $TRIMMING_DIR/$3_2_Qual_Raw_Reads 2>&1 | tee $ERROR_TMP 2>&1 >> $TRIMMING_DIR/$TRIMMING_DIR_$DATE.log
 rtrn=$?
 if [[ $rtrn -ne 0 ]]; then
-    Echo "$(date '+%Y%m%d %r') [fastqc] Failed An error occured during quality control of raw reads in file $2" | tee -a $ERROR_TMP 2>&1 | tee -a $TRIMMING_DIR/$TRIMMING_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+    echo "$(date '+%Y%m%d %r') [fastqc] Failed An error occured during quality control of raw reads in file $2" | tee -a $ERROR_TMP 2>&1 | tee -a $TRIMMING_DIR/$TRIMMING_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
     echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code $rtrn." | tee -a $ERROR_TMP 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
     echo "$(date '+%Y%m%d %r') [Pipeline error] More information can be found in $ERROR_TMP." | tee -a $LOG_DIR/$LOGFILE 2>&1
     exit $rtrn
@@ -294,12 +294,52 @@ else
     echo "$(date '+%Y%m%d %r') [fastqc] OK Quality Control of raw reads in file $2 was done sucessfully." | tee -a $TRIMMING_DIR/$TRIMMING_DIR_$DATE.log 2>&1 >> $LOG_DIR/$LOGFILE
 fi
 
-# TODO: Ici recuperer les infos et graphes de qualité
-# exits the pipeline if some quality control failed (duplication rate)
+# Check for fastqc quality control failures report
+if [[ $(toupper ${PARAMETERS_TABLE["bypass_fastqc_failure_report_checking"]}) == "FALSE" ]]; then
+    echo "$(date '+%Y%m%d %r') [check_fastqc_quality_failure_report] Check for fastqc quality control failures in raw reads file $1" | tee -a $TRIMMING_DIR/$TRIMMING_DIR_$DATE.log 2>&1 >> $LOG_DIR/$LOGFILE
+    check_fastqc_quality_failure_report $TRIMMING_DIR/$3_1_Qual_Raw_Reads/$(basename $1)_fastqc/summary.txt 2>&1 | tee $ERROR_TMP 2>&1 >> $TRIMMING_DIR/$TRIMMING_DIR_$DATE.log
+    rtrn=$?
+    if [[ $rtrn -ne 0 ]]; then
+	echo "$(date '+%Y%m%d %r') [check_fastqc_quality_failure_report] Failed An error occured during fastqc quality failures quality checking for raw reads file $1" | tee -a $ERROR_TMP 2>&1 | tee -a $TRIMMING_DIR/$TRIMMING_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code $rtrn." | tee -a $ERROR_TMP 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	echo "$(date '+%Y%m%d %r') [Pipeline error] More information can be found in $ERROR_TMP." | tee -a $LOG_DIR/$LOGFILE 2>&1
+	exit $rtrn
+    else
+	if [[ -s $ERROR_TMP ]]; then
+	    echo "$(date '+%Y%m%d %r') [check_fastqc_quality_failure_report] A fastqc quality failure was reported for raw reads file $1: $(cat $ERROR_TMP)" | tee -a $ERROR_TMP 2>&1 | tee -a $TRIMMING_DIR/$TRIMMING_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	    echo "$(date '+%Y%m%d %r') [check_fastqc_quality_failure_report] If you do not want this pipeline to perform fasqtc quality failures checking, please change the following option in your configuration file to bypass_fastqc_failure_report_checking=TRUE" | tee -a $ERROR_TMP 2>&1 | tee -a $TRIMMING_DIR/$TRIMMING_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	    echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code $rtrn." | tee -a $ERROR_TMP 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	    echo "$(date '+%Y%m%d %r') [Pipeline error] More information can be found in $ERROR_TMP." | tee -a $LOG_DIR/$LOGFILE 2>&1
+	    exit $rtrn
+	else
+	    echo "$(date '+%Y%m%d %r') [check_fastqc_quality_failure_report] OK No fastqc quality failures reported for raw reads file $1." | tee -a $TRIMMING_DIR/$TRIMMING_DIR_$DATE.log 2>&1 >> $LOG_DIR/$LOGFILE
+	fi
+    fi
+
+    echo "$(date '+%Y%m%d %r') [check_fastqc_quality_failure_report] Check for fastqc quality control failures in raw reads file $2" | tee -a $TRIMMING_DIR/$TRIMMING_DIR_$DATE.log 2>&1 >> $LOG_DIR/$LOGFILE
+    check_fastqc_quality_failure_report $TRIMMING_DIR/$3_2_Qual_Raw_Reads/$(basename $2)_fastqc/summary.txt 2>&1 | tee $ERROR_TMP 2>&1 >> $TRIMMING_DIR/$TRIMMING_DIR_$DATE.log
+    rtrn=$?
+    if [[ $rtrn -ne 0 ]]; then
+	echo "$(date '+%Y%m%d %r') [check_fastqc_quality_failure_report] Failed An error occured during fastqc quality failures quality checking for raw reads file $2" | tee -a $ERROR_TMP 2>&1 | tee -a $TRIMMING_DIR/$TRIMMING_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code $rtrn." | tee -a $ERROR_TMP 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	echo "$(date '+%Y%m%d %r') [Pipeline error] More information can be found in $ERROR_TMP." | tee -a $LOG_DIR/$LOGFILE 2>&1
+	exit $rtrn
+    else
+	if [[ -s $ERROR_TMP ]]; then
+	    echo "$(date '+%Y%m%d %r') [check_fastqc_quality_failure_report] A fastqc quality failure was reported for raw reads file $2: $(cat $ERROR_TMP)" | tee -a $ERROR_TMP 2>&1 | tee -a $TRIMMING_DIR/$TRIMMING_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	    echo "$(date '+%Y%m%d %r') [check_fastqc_quality_failure_report] If you do not want this pipeline to perform fasqtc quality failures checking, please change the following option in your configuration file to bypass_fastqc_failure_report_checking=TRUE" | tee -a $ERROR_TMP 2>&1 | tee -a $TRIMMING_DIR/$TRIMMING_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	    echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code $rtrn." | tee -a $ERROR_TMP 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	    echo "$(date '+%Y%m%d %r') [Pipeline error] More information can be found in $ERROR_TMP." | tee -a $LOG_DIR/$LOGFILE 2>&1
+	    exit $rtrn
+	else
+	    echo "$(date '+%Y%m%d %r') [check_fastqc_quality_failure_report] OK No fastqc quality failures reported for raw reads file $2." | tee -a $TRIMMING_DIR/$TRIMMING_DIR_$DATE.log 2>&1 >> $LOG_DIR/$LOGFILE
+	fi
+    fi
+fi
 
 # Trim reads by using Trimmomatic
 
-echo "# $(date '+%Y%m%d %r') [Trimmomatic] Let's trim raw reads ..." | tee -a $TRIMMING_DIR/$TRIMMING_DIR_$DATE.log 2>&1 >> $LOG_DIR/$LOGFILE
+echo "$(date '+%Y%m%d %r') [Trimmomatic] Let's trim raw reads ..." | tee -a $TRIMMING_DIR/$TRIMMING_DIR_$DATE.log 2>&1 >> $LOG_DIR/$LOGFILE
 
 if [[ ${PARAMETERS_TABLE["QUAL_ENCODING"]} -eq 33 ]]; then
     java -classpath /usr/local/src/Trimmomatic-0.22/trimmomatic-0.22.jar org.usadellab.trimmomatic.TrimmomaticPE \
@@ -400,6 +440,50 @@ else
     echo "$(date '+%Y%m%d %r') [fastqc] OK Quality Control of trimmed reads in file $TRIMMING_DIR/$3_2_paired.fq was done sucessfully." | tee -a $TRIMMING_DIR/$TRIMMING_DIR_$DATE.log 2>&1 >> $LOG_DIR/$LOGFILE
 fi
 
+# Check for fastqc quality control failures report
+if [[ $(toupper ${PARAMETERS_TABLE["bypass_fastqc_failure_report_checking"]}) == "FALSE" ]]; then
+    echo "$(date '+%Y%m%d %r') [check_fastqc_quality_failure_report] Check for fastqc quality control failures in trimmed reads file $3_1_paired.fq" | tee -a $TRIMMING_DIR/$TRIMMING_DIR_$DATE.log 2>&1 >> $LOG_DIR/$LOGFILE
+    check_fastqc_quality_failure_report $TRIMMING_DIR/$3_1_Qual_Trim_Reads/$3_1_paired.fq_fastqc/summary.txt 2>&1 | tee $ERROR_TMP 2>&1 >> $TRIMMING_DIR/$TRIMMING_DIR_$DATE.log
+    rtrn=$?
+    if [[ $rtrn -ne 0 ]]; then
+	echo "$(date '+%Y%m%d %r') [check_fastqc_quality_failure_report] Failed An error occured during fastqc quality failures quality checking for trimmed reads file $3_1_paired.fq" | tee -a $ERROR_TMP 2>&1 | tee -a $TRIMMING_DIR/$TRIMMING_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code $rtrn." | tee -a $ERROR_TMP 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	echo "$(date '+%Y%m%d %r') [Pipeline error] More information can be found in $ERROR_TMP." | tee -a $LOG_DIR/$LOGFILE 2>&1
+	exit $rtrn
+    else
+	if [[ -s $ERROR_TMP ]]; then
+	    echo "$(date '+%Y%m%d %r') [check_fastqc_quality_failure_report] A fastqc quality failure was reported for trimmed reads file $3_1_paired.fq: $(cat $ERROR_TMP)" | tee -a $ERROR_TMP 2>&1 | tee -a $TRIMMING_DIR/$TRIMMING_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	    echo "$(date '+%Y%m%d %r') [check_fastqc_quality_failure_report] If you do not want this pipeline to perform fasqtc quality failures checking, please change the following option in your configuration file to bypass_fastqc_failure_report_checking=TRUE" | tee -a $ERROR_TMP 2>&1 | tee -a $TRIMMING_DIR/$TRIMMING_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	    echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code $rtrn." | tee -a $ERROR_TMP 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	    echo "$(date '+%Y%m%d %r') [Pipeline error] More information can be found in $ERROR_TMP." | tee -a $LOG_DIR/$LOGFILE 2>&1
+	    exit $rtrn
+	else
+	    echo "$(date '+%Y%m%d %r') [check_fastqc_quality_failure_report] OK No fastqc quality failures reported for trimmed reads file $3_1_paired.fq." | tee -a $TRIMMING_DIR/$TRIMMING_DIR_$DATE.log 2>&1 >> $LOG_DIR/$LOGFILE
+	fi
+    fi
+
+    echo "$(date '+%Y%m%d %r') [check_fastqc_quality_failure_report] Check for fastqc quality control failures in trimmed reads file $3_2_paired.fq" | tee -a $TRIMMING_DIR/$TRIMMING_DIR_$DATE.log 2>&1 >> $LOG_DIR/$LOGFILE
+    check_fastqc_quality_failure_report $TRIMMING_DIR/$3_2_Qual_Trim_Reads/$3_2_paired.fq_fastqc/summary.txt 2>&1 | tee $ERROR_TMP 2>&1 >> $TRIMMING_DIR/$TRIMMING_DIR_$DATE.log
+    rtrn=$?
+    if [[ $rtrn -ne 0 ]]; then
+	echo "$(date '+%Y%m%d %r') [check_fastqc_quality_failure_report] Failed An error occured during fastqc quality failures quality checking for trimmed reads file $3_2_paired.fq" | tee -a $ERROR_TMP 2>&1 | tee -a $TRIMMING_DIR/$TRIMMING_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code $rtrn." | tee -a $ERROR_TMP 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	echo "$(date '+%Y%m%d %r') [Pipeline error] More information can be found in $ERROR_TMP." | tee -a $LOG_DIR/$LOGFILE 2>&1
+	exit $rtrn
+    else
+	if [[ -s $ERROR_TMP ]]; then
+	    echo "$(date '+%Y%m%d %r') [check_fastqc_quality_failure_report] A fastqc quality failure was reported for trimmed reads file $3_2_paired.fq: $(cat $ERROR_TMP)" | tee -a $ERROR_TMP 2>&1 | tee -a $TRIMMING_DIR/$TRIMMING_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	    echo "$(date '+%Y%m%d %r') [check_fastqc_quality_failure_report] If you do not want this pipeline to perform fasqtc quality failures checking, please change the following option in your configuration file to bypass_fastqc_failure_report_checking=TRUE" | tee -a $ERROR_TMP 2>&1 | tee -a $TRIMMING_DIR/$TRIMMING_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	    echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code $rtrn." | tee -a $ERROR_TMP 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	    echo "$(date '+%Y%m%d %r') [Pipeline error] More information can be found in $ERROR_TMP." | tee -a $LOG_DIR/$LOGFILE 2>&1
+	    exit $rtrn
+	else
+	    echo "$(date '+%Y%m%d %r') [check_fastqc_quality_failure_report] OK No fastqc quality failures reported for trimmed reads file $3_2_paired.fq." | tee -a $TRIMMING_DIR/$TRIMMING_DIR_$DATE.log 2>&1 >> $LOG_DIR/$LOGFILE
+	fi
+    fi
+fi
+
+
 ########################
 # SECTION MAPPING
 #######################
@@ -492,7 +576,7 @@ echo "$(date '+%Y%m%d %r') [Filter MAPQ] $FILTER_DIR/$3_mapped_MAPQ.sam $(wc -l 
 
 # Remove reads with more than x independent events
 # Filter on XO and XM (6 cases): Xo+Xm <= 2 (default in ${PARAMETERS_TABLE["nb_of_independent_event"]})
-remove_reads_with_more_than_x_independent_events 2 $FILTER_DIR/$3_mapped_MAPQ.sam >$FILTER_DIR/$3_mapped_MAPQ_XOXM.sam 2>$FILTER_DIR/$3_XOXM.excluded
+remove_reads_with_more_than_x_independent_events ${PARAMETERS_TABLE["nb_of_independent_event"]} $FILTER_DIR/$3_mapped_MAPQ.sam >$FILTER_DIR/$3_mapped_MAPQ_XOXM.sam 2>$FILTER_DIR/$3_XOXM.excluded
 
 # Count the number of reads in sam file filtered for given x independent events threshold
 echo "$(date '+%Y%m%d %r') [Filter XOXM independent events] $FILTER_DIR/$3_mapped_MAPQ_XOXM.sam $(wc -l $FILTER_DIR/$3_mapped_MAPQ_XOXM.sam | awk '{print $1}') " >> $FILTER_DIR/$FILTER_DIR_$DATE.log
@@ -522,7 +606,7 @@ echo "$(date '+%Y%m%d %r') [Filter end] Add the header to filtered sam file" >> 
 if [[ -e $FILTER_DIR/$3_mapped_MAPQ.sam ]]; then
     echo "# sam file exists ! Start to convert sam to bam ..." >> $LOG_DIR/$LOGFILE
     samtools view \
-	-$([[ ${PARAMETERS_TABLE["samtools_view_b"]} -eq "TRUE" ]] && echo -ne "b")$([[ ${PARAMETERS_TABLE["samtools_view_S"]} -eq "TRUE" ]] && echo -ne "S") \
+	-$([[ ${PARAMETERS_TABLE["samtools_view_b"]} == "TRUE" ]] && echo -ne "b")$([[ ${PARAMETERS_TABLE["samtools_view_S"]} == "TRUE" ]] && echo -ne "S") \
 	$FILTER_DIR/$3_mapped_MAPQ.sam > $FILTER_DIR/$3.bam 2>$FILTER_TMP\_1
     echo "$(date '+%Y%m%d %r') [Filter: Convert sam to bam] $FILTER_DIR/$3.bam" >> $LOG_DIR/$LOGFILE
     cat $FILTER_TMP\_1 >> $FILTER_DIR/$FILTER_DIR_$DATE.log
@@ -569,10 +653,10 @@ if [[ -e $FILTER_DIR/$3_sorted.bam ]]; then
     #samtools faidx ${PARAMETERS_TABLE["REFERENCE_GENOME_FASTA"]} 2>$ANALYSIS_TMP\_1
     # This step will be done one time
     samtools mpileup \
-	-$([[ ${PARAMETERS_TABLE["samtools_mpileup_B"]} -eq "TRUE" ]] && echo -ne "B") \
+	-$([[ ${PARAMETERS_TABLE["samtools_mpileup_B"]} == "TRUE" ]] && echo -ne "B") \
 	-$([[ ${PARAMETERS_TABLE["samtools_mpileup_Q"]} ]] && echo -ne "Q" ${PARAMETERS_TABLE["samtools_mpileup_Q"]}) \
-	-$([[ ${PARAMETERS_TABLE["samtools_mpileup_u"]} -eq "TRUE" ]] && echo -ne "u") \
-	-$([[ ${PARAMETERS_TABLE["samtools_mpileup_f"]} -eq "TRUE" ]] && echo -ne "f") ${PARAMETERS_TABLE["REFERENCE_GENOME_FASTA"]} $FILTER_DIR/$3_sorted.bam > $ANALYSIS_DIR/$3.bcf 2>$ANALYSIS_TMP\_2
+	-$([[ ${PARAMETERS_TABLE["samtools_mpileup_u"]} == "TRUE" ]] && echo -ne "u") \
+	-$([[ ${PARAMETERS_TABLE["samtools_mpileup_f"]} == "TRUE" ]] && echo -ne "f") ${PARAMETERS_TABLE["REFERENCE_GENOME_FASTA"]} $FILTER_DIR/$3_sorted.bam > $ANALYSIS_DIR/$3.bcf 2>$ANALYSIS_TMP\_2
     # TODO mpileup parameters
     #echo "$(date '+%Y%m%d %r') [Analysis: faidx]">> $LOG_DIR/$LOGFILE
     #cat $ANALYSIS_TMP\_1 >> $LOG_DIR/$LOGFILE
@@ -587,7 +671,7 @@ fi
 
 if [[ -e $ANALYSIS_DIR/$3.bcf ]]; then
     echo "# bcf file exists ! Start to call variant" >> $LOG_DIR/$LOGFILE   
-    bcftools view -$([[ ${PARAMETERS_TABLE["bcftools_view_c"]} -eq "TRUE" ]] && echo -ne "c")$([[ ${PARAMETERS_TABLE["bcftools_view_v"]} -eq "TRUE" ]] && echo -ne "v")$([[ ${PARAMETERS_TABLE["bcftools_view_g"]} -eq "TRUE" ]] && echo -ne "g") $ANALYSIS_DIR/$3.bcf > $ANALYSIS_DIR/$3.vcf 2>$ANALYSIS_TMP\_3
+    bcftools view -$([[ ${PARAMETERS_TABLE["bcftools_view_c"]} == "TRUE" ]] && echo -ne "c")$([[ ${PARAMETERS_TABLE["bcftools_view_v"]} == "TRUE" ]] && echo -ne "v")$([[ ${PARAMETERS_TABLE["bcftools_view_g"]} == "TRUE" ]] && echo -ne "g") $ANALYSIS_DIR/$3.bcf > $ANALYSIS_DIR/$3.vcf 2>$ANALYSIS_TMP\_3
     echo "$(date '+%Y%m%d %r') [Analysis: bcftools view] $3.vcf">> $LOG_DIR/$LOGFILE
     cat $ANALYSIS_TMP\_3 >> $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log
 else
@@ -603,10 +687,10 @@ fi
 
 if [[ -e $ANALYSIS_DIR/$3.vcf ]]; then
     echo "# vcf file exists ! Start to compress it ..." >> $LOG_DIR/$LOGFILE   
-    bgzip -$([[ ${PARAMETERS_TABLE["bgzip_f"]} -eq "TRUE" ]] && echo -ne "f")$([[ ${PARAMETERS_TABLE["bgzip_c"]} -eq "TRUE" ]] && echo -ne "c") $ANALYSIS_DIR/$3.vcf > $ANALYSIS_DIR/$3.vcf.gz
+    bgzip -$([[ ${PARAMETERS_TABLE["bgzip_f"]} == "TRUE" ]] && echo -ne "f")$([[ ${PARAMETERS_TABLE["bgzip_c"]} == "TRUE" ]] && echo -ne "c") $ANALYSIS_DIR/$3.vcf > $ANALYSIS_DIR/$3.vcf.gz
     # TO DO Standard error
     echo "$(date '+%Y%m%d %r') [Analysis: Compress vcf] $3.vcf.gz">> $LOG_DIR/$LOGFILE
-    tabix -$([[ ${PARAMETERS_TABLE["tabix_p"]} ]] && echo -ne "p" ${PARAMETERS_TABLE["tabix_p"]}) -$([[ ${PARAMETERS_TABLE["tabix_f"]} -eq "TRUE" ]] && echo -ne "f") $ANALYSIS_DIR/$3.${PARAMETERS_TABLE["tabix_p"]}.gz
+    tabix -$([[ ${PARAMETERS_TABLE["tabix_p"]} ]] && echo -ne "p" ${PARAMETERS_TABLE["tabix_p"]}) -$([[ ${PARAMETERS_TABLE["tabix_f"]} == "TRUE" ]] && echo -ne "f") $ANALYSIS_DIR/$3.${PARAMETERS_TABLE["tabix_p"]}.gz
     # TO DO Standard error
     echo "$(date '+%Y%m%d %r') [Analysis: tabix (Index compressed ${PARAMETERS_TABLE['tabix_p']})] $3.${PARAMETERS_TABLE['tabix_p']}.gz">> $LOG_DIR/$LOGFILE
 else
