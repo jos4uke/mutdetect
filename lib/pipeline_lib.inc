@@ -202,7 +202,7 @@ check_params_validity()
 		    rtrn=5
 		fi
 		;;
-	    "fastqc_bypass_failure") 
+	    "bypass_fastqc_failure_report_checking") 
 		echo -e $check_value_type_msg
 		if [[ $(toupper $value) -eq "TRUE" || $(toupper $value) -eq "FALSE" || $value -eq 1 || $value -eq 0 ]]; then
 		    echo -e $ok_msg
