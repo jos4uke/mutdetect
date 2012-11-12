@@ -606,6 +606,26 @@ check_params_interval_validity()
     fi
 }
 
+#----------------------------------------------
+# check_fastqc_quality_failure_report function
+#
+check_fastqc_quality_failure_report()
+{
+    fastqc_summary_file=$1
+
+    out=$(grep -E "^FAIL[[:space:]]" $fastqc_summary_file)
+    rtrn=$?
+    if [[ -n $out ]]
+	then
+	echo "$out" >&2
+	return $rtrn
+	
+	else
+	return $rtrn
+    fi
+}
+
+
 #-----------------------------------------------------------
 # remove_reads_with_more_than_x_independent_events function
 #
