@@ -613,104 +613,214 @@ fi
 # SECTION FILTERING
 #######################
 
-if [[ -e $MAPPING_DIR/$3.sam ]]; then
-    echo "# .sam file exists ! Start to filter alignments ..." >> $LOG_DIR/$LOGFILE
-else 
-    echo "sam file does not exist"
-    exit $?
+if [[ -d $FILTER_DIR ]]; then
+    echo "$(date '+%Y%m%d %r') [Filtering] Starting filtering process" 2>&1 | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+    echo "$(date '+%Y%m%d %r') [Filtering directory] OK $FILTER_DIR directory already exists. Will write filtering output in this directory." 2>&1 | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+else
+    mkdir $FILTER_DIR
+    if [[ $? -ne 0 ]]; then
+	echo "$(date '+%Y%m%d %r') [Filtering directory] Failed Filtering directory, $FILTER_DIR, was not created." 2>&1 | tee $ERROR_TMP 2>&1 | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code 126." 2>&1 | tee -a $ERROR_TMP 2>&1 | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	echo "$(date '+%Y%m%d %r') [Pipeline error] More information can be found in $ERROR_TMP." 2>&1 | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	exit 126
+    else
+	echo "$(date '+%Y%m%d %r') [Filtering] Starting filtering process" 2>&1 | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	echo "$(date '+%Y%m%d %r') [Filtering directory] OK $FILTER_DIR directory was created sucessfully. Will write filtering output in this directory." 2>&1 | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+    fi
 fi
 
-if [[ ! -e $FILTER_DIR ]]; then
-    mkdir $FILTER_DIR 
+if [[ -s $MAPPING_DIR/$3.sam ]]; then
+    echo "$(date '+%Y%m%d %r') [sam input files] OK Sam input files exists and are not empty." 2>&1 | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+else
+    echo "$(date '+%Y%m%d %r') [sam input files] Failed Input file, $MAPPING_DIR/$3.sam, does not exist or is empty" 2>&1 | tee $ERROR_TMP 2>&1 | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2&>1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+    echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code 3." 2>&1 | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+    exit 3
 fi
 
 # Catch the sam file header
-echo "$(date '+%Y%m%d %r') [Filter start] save sam header file" >> $FILTER_DIR/$FILTER_DIR_$DATE.log
-echo "$(date '+%Y%m%d %r') [Filter start] save sam header file" >> $LOG_DIR/$LOGFILE
+echo "$(date '+%Y%m%d %r') [Filter sam header] Backuping sam header to file" 2>&1 | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+grep "^@" $MAPPING_DIR/$3.sam > $FILTER_DIR/header.txt 2>$ERROR_TMP
+rtrn=$?
+if [[ $rtrn -ne 0 ]]; then
+    echo "$(date '+%Y%m%d %r') [Filter sam header] Failed Sam header was not backuped to file. An error occured." 2>&1 | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+    echo "$(date '+%Y%m%d %r') [Filter sam header] Error: $(cat $ERROR_TMP)" 2>&1 | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+    echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code $rtrn." 2>&1 | tee -a $ERROR_TMP 2>&1 | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+    exit $rtrn
+else
+    echo "$(date '+%Y%m%d %r') [Filter sam header] OK Sam header saved to file $FILTER_DIR/header.txt." 2>&1 | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+fi
 
-grep "^@" $MAPPING_DIR/$3.sam > $FILTER_DIR/header.txt
-grep -v "^@" $MAPPING_DIR/$3.sam > $FILTER_DIR/$3_tmp.sam
+# Get sam file reads
+echo "$(date '+%Y%m%d %r') [Filter sam reads] Getting sam reads (without header)" 2>&1 | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+grep -v "^@" $MAPPING_DIR/$3.sam > $FILTER_DIR/$3_tmp.sam 2>$ERROR_TMP
+rtrn=$?
+if [[ $rtrn -ne 0 ]]; then
+    echo "$(date '+%Y%m%d %r') [Filter sam reads] Failed No reads (without header) were saved to sam file. An error occured." | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+    echo "$(date '+%Y%m%d %r') [Filter sam reads] Error: $(cat $ERROR_TMP)" | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+    echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code $rtrn." | tee -a $ERROR_TMP 2>&1 | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+    exit $rtrn
+else
+    echo "$(date '+%Y%m%d %r') [Filter sam reads] OK Only reads (without header) were saved to sam file $FILTER_DIR/$3_tmp.sam." 2>&1 | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+fi
 
 # Count the initial number of reads in sam file
-echo "$(date '+%Y%m%d %r') [Filter all reads] $3.sam $(wc -l $FILTER_DIR/$3_tmp.sam | awk '{print $1}') " >> $FILTER_DIR/$FILTER_DIR_$DATE.log
-echo "$(date '+%Y%m%d %r') [Filter all reads] $3.sam $(wc -l $FILTER_DIR/$3_tmp.sam | awk '{print $1}') " >> $LOG_DIR/$LOGFILE
+echo "$(date '+%Y%m%d %r') [Filter all reads] $3.sam $(wc -l $FILTER_DIR/$3_tmp.sam | awk '{print $1}') " 2>&1 | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
 
 # Remove non aligned reads
-grep -v "*" $FILTER_DIR/$3_tmp.sam > $FILTER_DIR/$3_mapped.sam
+echo "$(date '+%Y%m%d %r') [Filter sam unmapped reads] Removing unmapped reads." 2>&1 | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+grep -v "*" $FILTER_DIR/$3_tmp.sam > $FILTER_DIR/$3_mapped.sam 2>$ERROR_TMP
+rtrn=$?
+if [[ $rtrn -ne 0 ]]; then
+    echo "$(date '+%Y%m%d %r') [Filter sam unmapped reads] Failed Unmapped reads were not filtered and no mapped reads were saved to sam file. An error occured." | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+    echo "$(date '+%Y%m%d %r') [Filter sam unmapped reads] Error: $(cat $ERROR_TMP)" | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+    echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code $rtrn." | tee -a $ERROR_TMP 2>&1 | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+    exit $rtrn
+else
+    echo "$(date '+%Y%m%d %r') [Filter sam unmapped reads] OK Only mapped reads were saved to sam file $FILTER_DIR/$3_mapped.sam." 2>&1 | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+fi
 
 # Count the number of aligned reads in sam file
-echo "$(date '+%Y%m%d %r') [Filter aligned reads] $FILTER_DIR/$3_mapped.sam $(wc -l $FILTER_DIR/$3_mapped.sam | awk '{print $1}') " >> $FILTER_DIR/$FILTER_DIR_$DATE.log
-echo "$(date '+%Y%m%d %r') [Filter aligned reads] $FILTER_DIR/$3_mapped.sam $(wc -l $FILTER_DIR/$3_mapped.sam | awk '{print $1}') " >> $LOG_DIR/$LOGFILE
+echo "$(date '+%Y%m%d %r') [Filter aligned reads] $FILTER_DIR/$3_mapped.sam $(wc -l $FILTER_DIR/$3_mapped.sam | awk '{print $1}') " 2>&1 | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
 
 # FILTRE sur MAPQ
-awk '{if($5==0 || $5>=20) print}' $FILTER_DIR/$3_mapped.sam > $FILTER_DIR/$3_mapped_MAPQ.sam
+echo "$(date '+%Y%m%d %r') [Filter MAPQ] Filtering mapped reads on MAPQ." 2>&1 | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+awk -v mapq_th=${PARAMETERS_TABLE["MAPQ_min"]} '{if($5==0 || $5>=mapq_th) print}' $FILTER_DIR/$3_mapped.sam > $FILTER_DIR/$3_mapped_MAPQ.sam 2>$ERROR_TMP
+rtrn=$?
+if [[ $rtrn -ne 0 ]]; then
+    echo "$(date '+%Y%m%d %r') [Filter MAPQ] Failed Mapped reads were not filtered on MAPQ and no mapped and MAPQ filtered reads were saved to sam file. An error occured." | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+    echo "$(date '+%Y%m%d %r') [Filter MAPQ] Error: $(cat $ERROR_TMP)" | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+    echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code $rtrn." | tee -a $ERROR_TMP 2>&1 | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+    exit $rtrn
+else
+    echo "$(date '+%Y%m%d %r') [Filter MAPQ] OK Only mapped and MAPQ filtered (==0 && >=${PARAMETERS_TABLE['MAPQ_min']}) reads were saved to sam file $FILTER_DIR/$3_mapped.sam." 2>&1 | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+fi
 
 # Count the number of aligned reads in sam file filtered for given MAPQ threshold
-echo "$(date '+%Y%m%d %r') [Filter MAPQ] $FILTER_DIR/$3_mapped_MAPQ.sam $(wc -l $FILTER_DIR/$3_mapped_MAPQ.sam | awk '{print $1}') " >> $FILTER_DIR/$FILTER_DIR_$DATE.log
-echo "$(date '+%Y%m%d %r') [Filter MAPQ] $FILTER_DIR/$3_mapped_MAPQ.sam $(wc -l $FILTER_DIR/$3_mapped_MAPQ.sam | awk '{print $1}') " >> $LOG_DIR/$LOGFILE
+echo "$(date '+%Y%m%d %r') [Filter MAPQ] $FILTER_DIR/$3_mapped_MAPQ.sam $(wc -l $FILTER_DIR/$3_mapped_MAPQ.sam | awk '{print $1}') " 2>&1 | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
 
 # Remove reads with more than x independent events
 # Filter on XO and XM (6 cases): Xo+Xm <= 2 (default in ${PARAMETERS_TABLE["nb_of_independent_event"]})
+echo "$(date '+%Y%m%d %r') [Filter XOXM independent events] Filtering mapped reads on number of independent events (XO+XM tags)." 2>&1 | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
 remove_reads_with_more_than_x_independent_events ${PARAMETERS_TABLE["nb_of_independent_event"]} $FILTER_DIR/$3_mapped_MAPQ.sam >$FILTER_DIR/$3_mapped_MAPQ_XOXM.sam 2>$FILTER_DIR/$3_XOXM.excluded
+rtrn=$?
+if [[ $rtrn -ne 0 ]]; then
+    echo "$(date '+%Y%m%d %r') [Filter XOXM independent events] Failed Mapped reads were not filtered on independent events and no mapped and XOXM filtered reads were saved to sam file. An error occured." | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+    echo "$(date '+%Y%m%d %r') [Filter XOXM independent events] Error: $(cat $ERROR_TMP)" | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+    echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code $rtrn." | tee -a $ERROR_TMP 2>&1 | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+    exit $rtrn
+else
+    echo "$(date '+%Y%m%d %r') [Filter XOXM independent events] OK Only mapped and MAPQ filtered reads with XOXM (<=${PARAMETERS_TABLE['nb_of_independent_event']}) were saved to sam file $FILTER_DIR/$3_mapped_MAPQ_XOXM.sam." 2>&1 | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+    echo "$(date '+%Y%m%d %r') [Filter XOXM independent events] OK mapped and MAPQ filtered reads but with XOXM (>${PARAMETERS_TABLE['nb_of_independent_event']}) were saved to excluded file $FILTER_DIR/$3_XOXM.excluded." 2>&1 | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+fi
 
 # Count the number of reads in sam file filtered for given x independent events threshold
-echo "$(date '+%Y%m%d %r') [Filter XOXM independent events] $FILTER_DIR/$3_mapped_MAPQ_XOXM.sam $(wc -l $FILTER_DIR/$3_mapped_MAPQ_XOXM.sam | awk '{print $1}') " >> $FILTER_DIR/$FILTER_DIR_$DATE.log
-echo "$(date '+%Y%m%d %r') [Filter XOXM independent events] $FILTER_DIR/$3_mapped_MAPQ_XOXM.sam $(wc -l $FILTER_DIR/$3_mapped_MAPQ_XOXM.sam | awk '{print $1}') " >> $LOG_DIR/$LOGFILE
-
-echo "$(date '+%Y%m%d %r') [Filter XOXM independent events] $FILTER_DIR/$3_XOXM.excluded $(wc -l $FILTER_DIR/$3_XOXM.excluded | awk '{print $1}') " >> $FILTER_DIR/$FILTER_DIR_$DATE.log
-echo "$(date '+%Y%m%d %r') [Filter XOXM independent events] $FILTER_DIR/$3_XOXM.excluded $(wc -l $FILTER_DIR/$3_XOXM.excluded | awk '{print $1}') " >> $LOG_DIR/$LOGFILE
+echo "$(date '+%Y%m%d %r') [Filter XOXM independent events] $FILTER_DIR/$3_mapped_MAPQ_XOXM.sam $(wc -l $FILTER_DIR/$3_mapped_MAPQ_XOXM.sam | awk '{print $1}') " 2>&1 | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+echo "$(date '+%Y%m%d %r') [Filter XOXM independent events] $FILTER_DIR/$3_XOXM.excluded $(wc -l $FILTER_DIR/$3_XOXM.excluded | awk '{print $1}') " 2>&1 | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
 
 # Filter CIGAR code for I or D < Y bases threshold (default 5)
+echo "$(date '+%Y%m%d %r') [Filter indels] Filtering mapped reads on indels size (CIGAR code)." 2>&1 | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
 remove_reads_with_indels_size_greater_than_y_bases ${PARAMETERS_TABLE["microindel_size"]} $FILTER_DIR/$3_mapped_MAPQ_XOXM.sam >$FILTER_DIR/$3_mapped_MAPQ_XOXM_INDELS.sam 2>$FILTER_DIR/$3_INDELS.excluded
+rtrn=$?
+if [[ $rtrn -ne 0 ]]; then
+    echo "$(date '+%Y%m%d %r') [Filter indels] Failed Mapped reads were not filtered on indels size and no mapped and indels size filtered reads were saved to sam file. An error occured." | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+    echo "$(date '+%Y%m%d %r') [Filter indels] Error: $(cat $ERROR_TMP)" | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+    echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code $rtrn." | tee -a $ERROR_TMP 2>&1 | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+    exit $rtrn
+else
+    echo "$(date '+%Y%m%d %r') [Filter indels] OK Only mapped and MAPQ, XOXM filtered reads with indels size (<=${PARAMETERS_TABLE['microindel_size']}) were saved to sam file $FILTER_DIR/$3_mapped_MAPQ_XOXM.sam." 2>&1 | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+    echo "$(date '+%Y%m%d %r') [Filter indels] OK mapped and MAPQ, XOXM filtered reads but with indels size (>${PARAMETERS_TABLE['microindel_size']}) were saved to excluded file $FILTER_DIR/$3_XOXM.excluded." 2>&1 | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+fi
 
 # Count the number of reads in sam file filtered for indels greater than given size threshold
-echo "$(date '+%Y%m%d %r') [Filter indels] $FILTER_DIR/$3_mapped_MAPQ_XOXM_INDELS.sam $(wc -l $FILTER_DIR/$3_mapped_MAPQ_XOXM_INDELS.sam | awk '{print $1}') " >> $FILTER_DIR/$FILTER_DIR_$DATE.log
-echo "$(date '+%Y%m%d %r') [Filter indels] $FILTER_DIR/$3_mapped_MAPQ_XOXM_INDELS.sam $(wc -l $FILTER_DIR/$3_mapped_MAPQ_XOXM_INDELS.sam | awk '{print $1}') " >> $LOG_DIR/$LOGFILE
+echo "$(date '+%Y%m%d %r') [Filter indels] $FILTER_DIR/$3_mapped_MAPQ_XOXM_INDELS.sam $(wc -l $FILTER_DIR/$3_mapped_MAPQ_XOXM_INDELS.sam | awk '{print $1}') " 2>&1 | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
 
-echo "$(date '+%Y%m%d %r') [Filter indels] $FILTER_DIR/$3_INDELS.excluded $(wc -l $FILTER_DIR/$3_INDELS.excluded | awk '{print $1}') " >> $FILTER_DIR/$FILTER_DIR_$DATE.log
-echo "$(date '+%Y%m%d %r') [Filter indels] $FILTER_DIR/$3_INDELS.excluded $(wc -l $FILTER_DIR/$3_INDELS.excluded | awk '{print $1}') " >> $LOG_DIR/$LOGFILE
+echo "$(date '+%Y%m%d %r') [Filter indels] $FILTER_DIR/$3_INDELS.excluded $(wc -l $FILTER_DIR/$3_INDELS.excluded | awk '{print $1}') " 2>&1 | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
 
 # Add the header at the end of the filtering
-cat $FILTER_DIR/header.txt $FILTER_DIR/$3_mapped_MAPQ_XOXM_INDELS.sam > tmp.sam
-mv tmp.sam $FILTER_DIR/$3_mapped_MAPQ.sam
+echo "$(date '+%Y%m%d %r') [Filter end] Appending filtered sam file to backuped sam header." 2>&1 | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+cat $FILTER_DIR/header.txt $FILTER_DIR/$3_mapped_MAPQ_XOXM_INDELS.sam > tmp.sam 2>$ERROR_TMP
+rtrn=$?
+if [[ $rtrn -ne 0 ]]; then
+    echo "$(date '+%Y%m%d %r') [Filter end] Failed Filtered reads sam file was not appended to sam header file. An error occured." | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+    echo "$(date '+%Y%m%d %r') [Filter end] Error: $(cat $ERROR_TMP)" | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+    echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code $rtrn." | tee -a $ERROR_TMP 2>&1 | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+    exit $rtrn
+else
+    echo "$(date '+%Y%m%d %r') [Filter end] Filtered reads sam file was appended to sam header file in tmp sam file $FILTER_DIR/tmp.sam." 2>&1 | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+fi
+mv tmp.sam $FILTER_DIR/$3_mapped_filtered.sam 2>>$ERROR_TMP
+rtrn=$?
+if [[ $rtrn -ne 0 ]]; then
+    echo "$(date '+%Y%m%d %r') [Filter end] Failed Tmp sam file was not renamed to $FILTER_DIR/$3_mapped_filtered.sam. An error occured." | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+    echo "$(date '+%Y%m%d %r') [Filter end] Error: $(cat $ERROR_TMP)" | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+    echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code $rtrn." | tee -a $ERROR_TMP 2>&1 | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+    exit $rtrn
+else
+    echo "$(date '+%Y%m%d %r') [Filter end] OK Tmp sam file $FILTER_DIR/tmp.sam was renamed successfully to $FILTER_DIR/$3_mapped_filtered.sam." 2>&1 | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+fi
 
-echo "$(date '+%Y%m%d %r') [Filter end] Add the header to filtered sam file" >> $FILTER_DIR/$FILTER_DIR_$DATE.log
-echo "$(date '+%Y%m%d %r') [Filter end] Add the header to filtered sam file" >> $LOG_DIR/$LOGFILE
+echo "$(date '+%Y%m%d %r') [Filter end] OK Filtered reads appended to sam header file in $FILTER_DIR/$3_mapped_filtered.sam." 2>&1 | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
 
-    # Convert SAM to BAM
-if [[ -e $FILTER_DIR/$3_mapped_MAPQ.sam ]]; then
-    echo "# sam file exists ! Start to convert sam to bam ..." >> $LOG_DIR/$LOGFILE
+# Convert SAM to BAM
+if [[ -s $FILTER_DIR/$3_mapped_filtered.sam ]]; then
+    echo "$(date '+%Y%m%d %r') [Filter samtools view] OK Starting sam conversion to bam format." 2>&1 | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
     samtools view \
 	-$([[ ${PARAMETERS_TABLE["samtools_view_b"]} == "TRUE" ]] && echo -ne "b")$([[ ${PARAMETERS_TABLE["samtools_view_S"]} == "TRUE" ]] && echo -ne "S") \
-	$FILTER_DIR/$3_mapped_MAPQ.sam > $FILTER_DIR/$3.bam 2>$FILTER_TMP\_1
-    echo "$(date '+%Y%m%d %r') [Filter: Convert sam to bam] $FILTER_DIR/$3.bam" >> $LOG_DIR/$LOGFILE
-    cat $FILTER_TMP\_1 >> $FILTER_DIR/$FILTER_DIR_$DATE.log
+	$FILTER_DIR/$3_mapped_filtered.sam > $FILTER_DIR/$3.bam 2>$FILTER_TMP\_1
+    rtrn=$?
+    if [[ $rtrn -ne 0 ]]; then
+	echo "$(date '+%Y%m%d %r') [Filter samtools view] Failed Sam to bam conversion was not done on $FILTER_DIR/$3_mapped_filtered.sam. An error occured." | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	echo "$(date '+%Y%m%d %r') [Filter samtools view] Error: $(cat $FILTER_TMP\_1)" | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code $rtrn." | tee -a $ERROR_TMP 2>&1 | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	exit $rtrn
+    else
+	cat $FILTER_TMP\_1 2>&1 | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	echo "$(date '+%Y%m%d %r') [Filter samtools view] OK Conversion of sam file $FILTER_DIR/$3_mapped_filtered.sam to bam file $FILTER_DIR/$3.bam was done successfully." 2>&1 | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+    fi
 else
-    echo "SAM file does not exist"
-    exit $?
+    echo "$(date '+%Y%m%d %r') [Filter samtools view] Failed Sam file $FILTER_DIR/$3_mapped_filtered.sam does not exist or is empty. An error occured." | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+    echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code 3" | tee -a $ERROR_TMP 2>&1 | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+    exit 3
 fi
 
-    # SORT BAM
-if [[ -e $FILTER_DIR/$3.bam ]]; then
-    echo "# bam file exists ! Start to sort bam file ..." >> $LOG_DIR/$LOGFILE
+# SORT BAM
+if [[ -s $FILTER_DIR/$3.bam ]]; then
+    echo "$(date '+%Y%m%d %r') [Filter samtools sort] OK Starting bam file sorting." 2>&1 | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
     samtools sort $FILTER_DIR/$3.bam $FILTER_DIR/$3_sorted 2>$FILTER_TMP\_2
-    echo "$(date '+%Y%m%d %r') [Filter: Sorted bam] $FILTER_DIR/$3_sorted.bam" >> $LOG_DIR/$LOGFILE
-    cat $FILTER_TMP\_2 >> $FILTER_DIR/$FILTER_DIR_$DATE.log
+    rtrn=$?
+    if [[ $rtrn -ne 0 ]]; then
+	echo "$(date '+%Y%m%d %r') [Filter samtools sort] Failed Bam file sorting was not done on bam file $FILTER_DIR/$3.bam. An error occured." | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	echo "$(date '+%Y%m%d %r') [Filter samtools sort] Error: $(cat $FILTER_TMP\_2)" | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code $rtrn." | tee -a $ERROR_TMP 2>&1 | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	exit $rtrn
+    else
+	cat $FILTER_TMP\_2 2>&1 | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	echo "$(date '+%Y%m%d %r') [Filter samtools sort] OK Bam file $FILTER_DIR/$3.bam was sorted successfully and saved to bam file $FILTER_DIR/$3_sorted.bam." 2>&1 | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+    fi
 else
-    echo "BAM file does not exist"
-    exit $?
+    echo "$(date '+%Y%m%d %r') [Filter samtools sort] Failed Bam file $FILTER_DIR/$3.bam does not exist or is empty. An error occured." | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+    echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code 3" | tee -a $ERROR_TMP 2>&1 | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+    exit 3
 fi
 
-    # INDEX BAM
-if [[ -e $FILTER_DIR/$3_sorted.bam ]]; then
-    echo "# Sorted bam file exists ! Start to index the file ..." >> $LOG_DIR/$LOGFILE
+ # INDEX BAM
+if [[ -s $FILTER_DIR/$3_sorted.bam ]]; then
+    echo "$(date '+%Y%m%d %r') [Filter samtools index] OK Starting bam file indexing." 2>&1 | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
     samtools index $FILTER_DIR/$3_sorted.bam 2>$FILTER_TMP\_3
-    # TO DO TEST $?
-    echo "$(date '+%Y%m%d %r') [Filter: Indexed and sorted bam] $FILTER_DIR/$3_sorted.bam.bai" >> $LOG_DIR/$LOGFILE
-    cat $FILTER_TMP\_3 >> $FILTER_DIR/$FILTER_DIR_$DATE.log
+    rtrn=$?
+    if [[ $rtrn -ne 0 ]]; then
+	echo "$(date '+%Y%m%d %r') [Filter samtools index] Failed Bam file indexing was not done on bam file $FILTER_DIR/$3_sorted.bam. An error occured." | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	echo "$(date '+%Y%m%d %r') [Filter samtools index] Error: $(cat $FILTER_TMP\_3)" | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code $rtrn." | tee -a $ERROR_TMP 2>&1 | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	exit $rtrn
+    else
+	cat $FILTER_TMP\_3 2>&1 | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	echo "$(date '+%Y%m%d %r') [Filter samtools index] OK Bam file $FILTER_DIR/$3_sorted.bam was indexed successfully and saved to bam file $FILTER_DIR/$3_sorted.bam.bai." 2>&1 | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+    fi
 else
-    echo "Sorted bam file does not exist"
-    exit $?
+    echo "$(date '+%Y%m%d %r') [Filter samtools index] Failed Bam file $FILTER_DIR/$3_sorted.bam does not exist or is empty. An error occured." | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+    echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code 3" | tee -a $ERROR_TMP 2>&1 | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+    exit 3
 fi
 
 ########################
