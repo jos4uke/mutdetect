@@ -96,8 +96,8 @@ fi
 
 # TEST if files exist 
 
-if [[ -e $1 && -s $1 ]]; then
-    if [[ -e $2 && -s $2 ]]; then
+if [[ -s $1 ]]; then
+    if [[ -s $2 ]]; then
 	echo "$(date '+%Y%m%d %r') [fastq input files] OK Input files exists and are not empty." | tee -a $LOG_DIR/$LOGFILE 2>&1
     else 
 	echo "$(date '+%Y%m%d %r') [fastq input files] Failed Input file, $2, does not exist or is empty" | tee -a $LOG_DIR/$LOGFILE 2>&1
@@ -165,7 +165,7 @@ fi
 
 # TEST if pipeline_user.config exists and then override default parameters if user defined parameters exist
 
-if [[ -e $PIPELINE_USER_CONFIG ]]; then
+if [[ -s $PIPELINE_USER_CONFIG ]]; then
     echo "$(date '+%Y%m%d %r') [get_pipeline_user_parameters] OK $PIPELINE_USER_CONFIG user config file exists! Let's check parameters validity ..." | tee -a $LOG_DIR/$LOGFILE 2>&1
     # load user config parameters
     get_pipeline_user_parameters $PIPELINE_USER_CONFIG 2>$ERROR_TMP
@@ -203,7 +203,7 @@ if [[ -e $PIPELINE_USER_CONFIG ]]; then
 	echo "$(date '+%Y%m%d %r') [check_params_interval_validity] OK User config parameters interval checking was done successfully." | tee -a $LOG_DIR/$LOGFILE 2>&1
     fi
 else 
-    echo "$(date '+%Y%m%d %r') [get_pipeline_user_parameters] Failed $PIPELINE_USER_CONFIG file does not exist." | tee -a $LOG_DIR/$LOGFILE 2>&1
+    echo "$(date '+%Y%m%d %r') [get_pipeline_user_parameters] Failed $PIPELINE_USER_CONFIG file does not exist or is empty." | tee -a $LOG_DIR/$LOGFILE 2>&1
     echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code 3." | tee -a $LOG_DIR/$LOGFILE 2>&1
     exit 3
 fi
@@ -524,8 +524,8 @@ fi
 
 echo "$(date '+%Y%m%d %r') [Mapping] Starting suffix array search process" | tee -a $MAPPING_DIR/$MAPPING_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
 
-if [[ -e $TRIMMING_DIR/$3_1_paired.fq && -s $TRIMMING_DIR/$3_1_paired.fq  ]]; then
-    if [[ -e $TRIMMING_DIR/$3_2_paired.fq && -s $TRIMMING_DIR/$3_2_paired.fq ]]; then
+if [[ -s $TRIMMING_DIR/$3_1_paired.fq ]]; then
+    if [[ -s $TRIMMING_DIR/$3_2_paired.fq ]]; then
 	echo "$(date '+%Y%m%d %r') [bwa aln] Input Files exist ! Run bwa aln ..." | tee -a $MAPPING_DIR/$MAPPING_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
 	bwa aln \
 	    -n ${PARAMETERS_TABLE["bwa_aln_n"]} \
@@ -579,8 +579,8 @@ fi
 
 echo "$(date '+%Y%m%d %r') [Mapping] Starting paired-end reads alignment process" | tee -a $MAPPING_DIR/$MAPPING_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
 
-if [[ -e $MAPPING_DIR/$3_1.sai && -s $MAPPING_DIR/$3_1.sai ]]; then
-    if [[ -e $MAPPING_DIR/$3_2.sai && -s $MAPPING_DIR/$3_2.sai ]]; then
+if [[ -s $MAPPING_DIR/$3_1.sai ]]; then
+    if [[ -s $MAPPING_DIR/$3_2.sai ]]; then
 	echo "$(date '+%Y%m%d %r') [bwa sampe] .sai Files exist ! Run bwa sampe ..." | tee -a $MAPPING_DIR/$MAPPING_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
 	bwa sampe \
 	    -n "${PARAMETERS_TABLE['bwa_sampe_n']}" \
