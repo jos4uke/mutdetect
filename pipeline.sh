@@ -489,50 +489,119 @@ fi
 #######################
 
 # Using BWA to map reads
-# UP to two mismatches
-# To allow, by exmple, one polymorphism + the mutation in the same read
+# default: 2 independent events i.e. considering mismatches and micro-indels
+# To allow, for example, at most one polymorphism + one indel of length 1 in the same read (the best match)
+# For the read pair mate, not the best match, this restriction is not applied and this read is "saved"
+# Nevertheless, to filter those last ones, see filtering section: apply max 2 independent events and micro-indel max length of 5 by default
+# default: multiple hits allowed up to 30, beyond this limit the coverage will decrease as a function of N_i (the number of reads at the position i in some repeated region) / M (the number of repetitions of the region), so take care of big gene families and highly repeated regions 
 
 # Create Mapping directory if does not exist
 
-if [[ ! -e $MAPPING_DIR ]]; then
-    mkdir $MAPPING_DIR 
+if [[ -d $MAPPING_DIR ]]; then
+    echo "$(date '+%Y%m%d %r') [Mapping] Starting mapping process" | tee -a $MAPPING_DIR/$MAPPING_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+    echo "$(date '+%Y%m%d %r') [Mapping directory] OK $MAPPING_DIR directory already exists. Will write mapping output in this directory." | tee -a $MAPPING_DIR/$MAPPING_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+else
+    mkdir $MAPPING_DIR
+    if [[ $? -ne 0 ]]; then
+	echo "$(date '+%Y%m%d %r') [Mapping directory] Failed Mapping directory, $MAPPING_DIR, was not created." | tee $ERROR_TMP 2>&1 | tee -a $MAPPING_DIR/$MAPPING_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code 126." | tee -a $ERROR_TMP 2>&1 | tee -a $MAPPING_DIR/$MAPPING_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	echo "$(date '+%Y%m%d %r') [Pipeline error] More information can be found in $ERROR_TMP." | tee -a $MAPPING_DIR/$MAPPING_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	exit 126
+    else
+	echo "$(date '+%Y%m%d %r') [Mapping] Starting mapping process" | tee -a $MAPPING_DIR/$MAPPING_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	echo "$(date '+%Y%m%d %r') [Mapping directory] OK $MAPPING_DIR directory was created sucessfully. Will write mapping output in this directory." | tee -a $MAPPING_DIR/$MAPPING_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+    fi
 fi
 
-if [[ -e $TRIMMING_DIR/$3_1_paired.fq && -e $TRIMMING_DIR/$3_2_paired.fq ]]; then
-    echo "# $(date '+%Y%m%d %r') [bwa aln] Input Files exist ! Run bwa aln ..." >> $LOG_DIR/$LOGFILE
-    bwa aln \
-	-n ${PARAMETERS_TABLE["bwa_aln_n"]} \
-	-R ${PARAMETERS_TABLE["bwa_aln_R"]} \
-	-t ${PARAMETERS_TABLE["bwa_aln_t"]} \
-	${PARAMETERS_TABLE["BWA_REFERENCE_GENOME_INDEX"]} $TRIMMING_DIR/$3_1_paired.fq > $MAPPING_DIR/$3_1.sai 2>$MAPPING_DIR/$MAPPING_DIR_$DATE.log &
-    bwa aln \
-	-n ${PARAMETERS_TABLE["bwa_aln_n"]} \
-	-R ${PARAMETERS_TABLE["bwa_aln_R"]} \
-	-t ${PARAMETERS_TABLE["bwa_aln_t"]} \
-	${PARAMETERS_TABLE["BWA_REFERENCE_GENOME_INDEX"]} $TRIMMING_DIR/$3_2_paired.fq > $MAPPING_DIR/$3_2.sai 2>$MAPPING_TMP\_1
-else 
-    echo "File does not exists"
-    exit $?
+# Perform reads alignment
+## Search suffix array for reads coordinates
+
+echo "$(date '+%Y%m%d %r') [Mapping] Starting suffix array search process" | tee -a $MAPPING_DIR/$MAPPING_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+
+if [[ -e $TRIMMING_DIR/$3_1_paired.fq && -s $TRIMMING_DIR/$3_1_paired.fq  ]]; then
+    if [[ -e $TRIMMING_DIR/$3_2_paired.fq && -s $TRIMMING_DIR/$3_2_paired.fq ]]; then
+	echo "$(date '+%Y%m%d %r') [bwa aln] Input Files exist ! Run bwa aln ..." | tee -a $MAPPING_DIR/$MAPPING_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	bwa aln \
+	    -n ${PARAMETERS_TABLE["bwa_aln_n"]} \
+	    -R ${PARAMETERS_TABLE["bwa_aln_R"]} \
+	    -t ${PARAMETERS_TABLE["bwa_aln_t"]} \
+	    ${PARAMETERS_TABLE["BWA_REFERENCE_GENOME_INDEX"]} $TRIMMING_DIR/$3_1_paired.fq > $MAPPING_DIR/$3_1.sai 2>$ERROR_TMP &
+	bwa_aln_pid=$!
+	
+	bwa aln \
+	    -n ${PARAMETERS_TABLE["bwa_aln_n"]} \
+	    -R ${PARAMETERS_TABLE["bwa_aln_R"]} \
+	    -t ${PARAMETERS_TABLE["bwa_aln_t"]} \
+	    ${PARAMETERS_TABLE["BWA_REFERENCE_GENOME_INDEX"]} $TRIMMING_DIR/$3_2_paired.fq > $MAPPING_DIR/$3_2.sai 2>$MAPPING_TMP\_1
+	rtrn2=$?
+
+        # TODO: this error handling section should wait for the end of the first instance of bwa aln => cf "kill -0 bwa_aln_pid" to tell the current status of the process; and wait bwa_aln_pid will return the exit status 
+	wait $bwa_aln_pid
+	rtrn1=$?
+	if [[ $rtrn1 -ne 0 ]]; then
+	    echo "$(date '+%Y%m%d %r') [bwa aln] Failed An error occured during suffix array search using bwa aln with file $TRIMMING_DIR/$3_1_paired.fq" | tee -a $ERROR_TMP 2>&1 | tee -a $MAPPING_DIR/$MAPPING_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	    echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code $rtrn1." | tee -a $ERROR_TMP 2>&1 | tee -a $MAPPING_DIR/$MAPPING_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	    echo "$(date '+%Y%m%d %r') [Pipeline error] More information can be found in $ERROR_TMP." | tee -a $MAPPING_DIR/$MAPPING_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	    exit $rtrn1
+	else
+	    cat $ERROR_TMP >> $MAPPING_DIR/$MAPPING_DIR_$DATE.log
+	    echo "$(date '+%Y%m%d %r') [bwa aln] OK Suffix array search using bwa aln with file $TRIMMING_DIR/$3_1_paired.fq was done sucessfully." | tee -a $MAPPING_DIR/$MAPPING_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	fi
+        #
+
+	if [[ $rtrn2 -ne 0 ]]; then
+	    echo "$(date '+%Y%m%d %r') [bwa aln] Failed An error occured during suffix array search using bwa aln with file $TRIMMING_DIR/$3_2_paired.fq" | tee -a $MAPPING_TMP\_1 2>&1 | tee -a $MAPPING_DIR/$MAPPING_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	    echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code $rtrn2." | tee -a $MAPPING_TMP\_1 2>&1 | tee -a $MAPPING_DIR/$MAPPING_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	    echo "$(date '+%Y%m%d %r') [Pipeline error] More information can be found in $MAPPING_TMP\_1." | tee -a $MAPPING_DIR/$MAPPING_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	    exit $rtrn2
+	else
+	    cat $MAPPING_TMP\_1 >> $MAPPING_DIR/$MAPPING_DIR_$DATE.log
+	    echo "$(date '+%Y%m%d %r') [bwa aln] OK Suffix array search using bwa aln with file $TRIMMING_DIR/$3_2_paired.fq was done sucessfully." | tee -a $MAPPING_DIR/$MAPPING_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	fi
+    else 
+	echo "$(date '+%Y%m%d %r') [fastq input files] Failed Input file, $3_2_paired.fq, does not exist or is empty" | tee -a $MAPPING_DIR/$MAPPING_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code 3." | tee -a $MAPPING_DIR/$MAPPING_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	exit 3
+    fi
+else
+    echo "$(date '+%Y%m%d %r') [fastq input files] Failed Input file, $3_1_paired.fq, does not exist or is empty" | tee -a $MAPPING_DIR/$MAPPING_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+    echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code 3." | tee -a $MAPPING_DIR/$MAPPING_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+    exit 3 
 fi 
 
+## Convert SA coordinates to chromosomal coordinates for paired-end reads
 
-# TEST if sai files exists
+echo "$(date '+%Y%m%d %r') [Mapping] Starting paired-end reads alignment process" | tee -a $MAPPING_DIR/$MAPPING_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
 
-if [[ -e $MAPPING_DIR/$3_1.sai && -e $MAPPING_DIR/$3_2.sai ]]; then
-    echo "# $(date '+%Y%m%d %r') [bwa sampe] .sai Files exist ! Run bwa sampe ..." >> $LOG_DIR/$LOGFILE
-    bwa sampe \
-	-n "${PARAMETERS_TABLE['bwa_sampe_n']}" \
-	-N "${PARAMETERS_TABLE['bwa_sampe_N']}" \
-	"${PARAMETERS_TABLE['BWA_REFERENCE_GENOME_INDEX']}" $MAPPING_DIR/$3_1.sai $MAPPING_DIR/$3_2.sai $TRIMMING_DIR/$3_1_paired.fq $TRIMMING_DIR/$3_2_paired.fq >$MAPPING_DIR/$3.sam 2>$MAPPING_TMP\_2
+if [[ -e $MAPPING_DIR/$3_1.sai && -s $MAPPING_DIR/$3_1.sai ]]; then
+    if [[ -e $MAPPING_DIR/$3_2.sai && -s $MAPPING_DIR/$3_2.sai ]]; then
+	echo "$(date '+%Y%m%d %r') [bwa sampe] .sai Files exist ! Run bwa sampe ..." | tee -a $MAPPING_DIR/$MAPPING_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	bwa sampe \
+	    -n "${PARAMETERS_TABLE['bwa_sampe_n']}" \
+	    -N "${PARAMETERS_TABLE['bwa_sampe_N']}" \
+	    "${PARAMETERS_TABLE['BWA_REFERENCE_GENOME_INDEX']}" $MAPPING_DIR/$3_1.sai $MAPPING_DIR/$3_2.sai $TRIMMING_DIR/$3_1_paired.fq $TRIMMING_DIR/$3_2_paired.fq >$MAPPING_DIR/$3.sam 2>$MAPPING_TMP\_2
+	rtrn=$?
+	if [[ $rtrn -ne 0 ]]; then
+	    echo "$(date '+%Y%m%d %r') [bwa sampe] Failed An error occured during paired-end reads alignment using bwa sampe" | tee -a $MAPPING_TMP\_2 2>&1 | tee -a $MAPPING_DIR/$MAPPING_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	    echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code $rtrn." | tee -a $MAPPING_TMP\_2 2>&1 | tee -a $MAPPING_DIR/$MAPPING_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	    echo "$(date '+%Y%m%d %r') [Pipeline error] More information can be found in $MAPPING_TMP\_2." | tee -a $MAPPING_DIR/$MAPPING_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	    exit $rtrn
+	else
+	    cat $MAPPING_TMP\_2 >> $MAPPING_DIR/$MAPPING_DIR_$DATE.log
+	    grep "^\[infer_isize\] inferred external" $MAPPING_DIR/$MAPPING_DIR_$DATE.log >> $LOG_DIR/$LOGFILE
+	    echo "$(date '+%Y%m%d %r') [bwa sampe] OK Paired-end reads alignment using bwa sampe was done sucessfully." | tee -a $MAPPING_DIR/$MAPPING_DIR_$DATE.log 2>&1 >> $LOG_DIR/$LOGFILE
+	fi
+    else
+	echo "$(date '+%Y%m%d %r') [bwa sampe] Failed Input sai file, $MAPPING_DIR/$3_2.sai, does not exist or is empty" | tee -a $MAPPING_DIR/$MAPPING_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code 3." | tee -a $MAPPING_DIR/$MAPPING_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	exit 3 
+    fi
 else
-    echo ".sai files do not exists"
-    exit $?
+    echo "$(date '+%Y%m%d %r') [bwa sampe] Failed Input sai file, $MAPPING_DIR/$3_1.sai, does not exist or is empty" | tee -a $MAPPING_DIR/$MAPPING_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+    echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code 3." | tee -a $MAPPING_DIR/$MAPPING_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+    exit 3    
 fi
 
-cat $MAPPING_TMP\_1 >> $MAPPING_DIR/$MAPPING_DIR_$DATE.log
-cat $MAPPING_TMP\_2 >> $MAPPING_DIR/$MAPPING_DIR_$DATE.log
-
-grep "^\[infer_isize\] inferred external" $MAPPING_DIR/$MAPPING_DIR_$DATE.log >> $LOG_DIR/$LOGFILE
 
 ########################
 # SECTION FILTERING
