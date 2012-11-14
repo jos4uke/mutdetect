@@ -100,12 +100,12 @@ if [[ -e $1 && -s $1 ]]; then
     if [[ -e $2 && -s $2 ]]; then
 	echo "$(date '+%Y%m%d %r') [fastq input files] OK Input files exists and are not empty." | tee -a $LOG_DIR/$LOGFILE 2>&1
     else 
-	echo "$(date '+%Y%m%d %r') [fastq input files] Failed Input file, $1, does not exist or is empty" | tee -a $LOG_DIR/$LOGFILE 2>&1
+	echo "$(date '+%Y%m%d %r') [fastq input files] Failed Input file, $2, does not exist or is empty" | tee -a $LOG_DIR/$LOGFILE 2>&1
 	echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code 3." | tee -a $LOG_DIR/$LOGFILE 2>&1
 	exit 3 
     fi 
 else
-    echo "$(date '+%Y%m%d %r') [fastq input files] Failed Input file, $2, does not exist or is empty" | tee -a $LOG_DIR/$LOGFILE 2>&1
+    echo "$(date '+%Y%m%d %r') [fastq input files] Failed Input file, $1, does not exist or is empty" | tee -a $LOG_DIR/$LOGFILE 2>&1
     echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code 3." | tee -a $LOG_DIR/$LOGFILE 2>&1
     exit 3 
 fi
