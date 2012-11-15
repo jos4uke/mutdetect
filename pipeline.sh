@@ -49,7 +49,6 @@ ERROR_TMP="/tmp/tmp_pipeline_error_${USER}_$DATE.log"
 
 declare -A PARAMETERS_TABLE
 
-
 #==============================================
 # TEST if enough args else print usage message
 #==============================================
@@ -93,8 +92,7 @@ else
     fi
 fi
 
-
-# TEST if files exist 
+# TEST if fastq files exist 
 
 if [[ -e $1 && -s $1 ]]; then
     if [[ -e $2 && -s $2 ]]; then
@@ -216,12 +214,12 @@ do
     echo -e "$i=${PARAMETERS_TABLE[$i]}" | tee -a $LOG_DIR/$LOGFILE 2>&1
 done
 
-
 ########################
 # SECTION TRIMMING
 #######################
 
 # If they do not already exist, create directories to store QC and Trimming results
+
 if [[ -d $TRIMMING_DIR ]]; then
     echo "$(date '+%Y%m%d %r') [Trimming] Start quality control and trimming process" | tee -a $TRIMMING_DIR/$TRIMMING_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
     echo "$(date '+%Y%m%d %r') [Trimming directory] OK $TRIMMING_DIR directory already exists. Will write trimming output in this directory." | tee -a $TRIMMING_DIR/$TRIMMING_DIR_$DATE.log 2>&1 >> $LOG_DIR/$LOGFILE
@@ -405,50 +403,94 @@ fi
 #######################
 
 # Using BWA to map reads
-# UP to two mismatches
-# To allow, by exmple, one polymorphism + the mutation in the same read
+# Up to two mismatches
+# To allow, by exemple, one polymorphism + the mutation in the same read
 
 # Create Mapping directory if does not exist
 
-if [[ ! -e $MAPPING_DIR ]]; then
-    mkdir $MAPPING_DIR 
+if [[ -d $MAPPING_DIR ]]; then
+    echo "$(date '+%Y%m%d %r') [Mapping] Start Mapping process" | tee -a $MAPPING_DIR/$MAPPING_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+    echo "$(date '+%Y%m%d %r') [Mapping directory] OK $MAPPING_DIR directory already exists. Will write Mapping output in this directory." | tee -a $MAPPING_DIR/$MAPPING_DIR_$DATE.log 2>&1 >> $LOG_DIR/$LOGFILE
+else
+    mkdir $MAPPING_DIR 2>$ERROR_TMP
+    if [[ $? -ne 0 ]]; then
+	echo "$(date '+%Y%m%d %r') [Mapping directory] Failed Mapping directory, $MAPPING_DIR, was not created." | tee -a $ERROR_TMP 2>&1 | tee -a $MAPPING_DIR/$MAPPING_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code 126." | tee -a $ERROR_TMP 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	echo "$(date '+%Y%m%d %r') [Pipeline error] More information can be found in $ERROR_TMP." | tee -a $LOG_DIR/$LOGFILE 2>&1
+	exit 126
+    else
+	echo "$(date '+%Y%m%d %r') [Mapping] Start Mapping process" | tee -a $MAPPING_DIR/$MAPPING_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	echo "$(date '+%Y%m%d %r') [Mapping directory] OK $MAPPING_DIR directory was created sucessfully. Will write Mapping output in this directory." | tee -a $MAPPING_DIR/$MAPPING_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE	
+    fi
 fi
 
-if [[ -e $TRIMMING_DIR/$3_1_paired.fq && -e $TRIMMING_DIR/$3_2_paired.fq ]]; then
-    echo "# $(date '+%Y%m%d %r') [bwa aln] Input Files exist ! Run bwa aln ..." >> $LOG_DIR/$LOGFILE
+# TEST if trimmed files are not empty and do the alignment
+
+if [[ -s $TRIMMING_DIR/$3_1_paired.fq && -s $TRIMMING_DIR/$3_2_paired.fq ]]; then
+    echo "$(date '+%Y%m%d %r') [Mapping: bwa aln] Input Files exist and are not empty! Run bwa aln ..." | tee -a $MAPPING_DIR/$MAPPING_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
     bwa aln \
 	-n ${PARAMETERS_TABLE["bwa_aln_n"]} \
 	-R ${PARAMETERS_TABLE["bwa_aln_R"]} \
 	-t ${PARAMETERS_TABLE["bwa_aln_t"]} \
-	${PARAMETERS_TABLE["BWA_REFERENCE_GENOME_INDEX"]} $TRIMMING_DIR/$3_1_paired.fq > $MAPPING_DIR/$3_1.sai 2>$MAPPING_DIR/$MAPPING_DIR_$DATE.log &
+	${PARAMETERS_TABLE["BWA_REFERENCE_GENOME_INDEX"]} $TRIMMING_DIR/$3_1_paired.fq > $MAPPING_DIR/$3_1.sai 2>$ERROR_TMP
+	
+	if [[ $? -ne 0 ]]; then
+	echo "$(date '+%Y%m%d %r') [Mapping: bwa aln] Failed alignment of $TRIMMING_DIR/$3_1_paired.fq" | tee -a $ERROR_TMP 2>&1 | tee -a $MAPPING_DIR/$MAPPING_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code 126." | tee -a $ERROR_TMP 2>&1 | tee -a $MAPPING_DIR/$MAPPING_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	echo "$(date '+%Y%m%d %r') [Pipeline error] More information can be found in $ERROR_TMP." | tee -a $ERROR_TMP 2>&1 | tee -a $MAPPING_DIR/$MAPPING_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	exit 126
+    else
+	echo "$(date '+%Y%m%d %r') [Mapping: bwa aln] Continue Mapping process" | tee -a $MAPPING_DIR/$MAPPING_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	echo "$(date '+%Y%m%d %r') [Mapping: bwa aln] OK $TRIMMING_DIR/$3_1_paired.fq was aligned sucessfully. Will write output in $MAPPING_DIR directory." | tee -a $MAPPING_DIR/$MAPPING_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE	
+    fi
+    
     bwa aln \
 	-n ${PARAMETERS_TABLE["bwa_aln_n"]} \
 	-R ${PARAMETERS_TABLE["bwa_aln_R"]} \
 	-t ${PARAMETERS_TABLE["bwa_aln_t"]} \
-	${PARAMETERS_TABLE["BWA_REFERENCE_GENOME_INDEX"]} $TRIMMING_DIR/$3_2_paired.fq > $MAPPING_DIR/$3_2.sai 2>$MAPPING_TMP\_1
+	${PARAMETERS_TABLE["BWA_REFERENCE_GENOME_INDEX"]} $TRIMMING_DIR/$3_2_paired.fq > $MAPPING_DIR/$3_2.sai 2>$ERROR_TMP
+	
+	if [[ $? -ne 0 ]]; then
+	echo "$(date '+%Y%m%d %r') [Mapping: bwa aln] Failed mapping of $TRIMMING_DIR/$3_2_paired.fq" | tee -a $ERROR_TMP 2>&1 | tee -a $MAPPING_DIR/$MAPPING_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code 126." | tee -a $ERROR_TMP 2>&1 | tee -a $MAPPING_DIR/$MAPPING_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	echo "$(date '+%Y%m%d %r') [Pipeline error] More information can be found in $ERROR_TMP." | tee -a $ERROR_TMP 2>&1 | tee -a $MAPPING_DIR/$MAPPING_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	exit 126
+    else
+	echo "$(date '+%Y%m%d %r') [Mapping: bwa aln] Continue Mapping process" | tee -a $MAPPING_DIR/$MAPPING_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	echo "$(date '+%Y%m%d %r') [Mapping: bwa aln] OK $TRIMMING_DIR/$3_2_paired.fq was aligned sucessfully. Will write output output in $MAPPING_DIR directory." | tee -a $MAPPING_DIR/$MAPPING_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE	
+    fi
+
 else 
-    echo "File does not exists"
+    echo "$(date '+%Y%m%d %r') [Mapping: bwa aln] Files does not exists or are empty" | tee -a $ERROR_TMP | tee -a $MAPPING_DIR/$MAPPING_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
     exit $?
 fi 
 
-
 # TEST if sai files exists
 
-if [[ -e $MAPPING_DIR/$3_1.sai && -e $MAPPING_DIR/$3_2.sai ]]; then
-    echo "# $(date '+%Y%m%d %r') [bwa sampe] .sai Files exist ! Run bwa sampe ..." >> $LOG_DIR/$LOGFILE
+if [[ -s $MAPPING_DIR/$3_1.sai && -s $MAPPING_DIR/$3_2.sai ]]; then
+    echo "$(date '+%Y%m%d %r') [Mapping: bwa sampe] sai files exist and are not empty! Run bwa sampe ..." | tee -a  $MAPPING_DIR/$MAPPING_DIR_$DATE.log| tee -a $LOG_DIR/$LOGFILE 2>&1
     bwa sampe \
 	-n "${PARAMETERS_TABLE['bwa_sampe_n']}" \
 	-N "${PARAMETERS_TABLE['bwa_sampe_N']}" \
-	"${PARAMETERS_TABLE['BWA_REFERENCE_GENOME_INDEX']}" $MAPPING_DIR/$3_1.sai $MAPPING_DIR/$3_2.sai $TRIMMING_DIR/$3_1_paired.fq $TRIMMING_DIR/$3_2_paired.fq >$MAPPING_DIR/$3.sam 2>$MAPPING_TMP\_2
+	"${PARAMETERS_TABLE['BWA_REFERENCE_GENOME_INDEX']}" $MAPPING_DIR/$3_1.sai $MAPPING_DIR/$3_2.sai $TRIMMING_DIR/$3_1_paired.fq $TRIMMING_DIR/$3_2_paired.fq >$MAPPING_DIR/$3.sam 2>$ERROR_TMP
+	
+	if [[ $? -ne 0 ]]; then
+	echo "$(date '+%Y%m%d %r') [Mapping: bwa sampe] Failed mapping of $TRIMMING_DIR/$3_2_paired.fq" | tee -a $ERROR_TMP 2>&1 | tee -a $MAPPING_DIR/$MAPPING_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code 126." | tee -a $ERROR_TMP 2>&1 | tee -a $MAPPING_DIR/$MAPPING_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	echo "$(date '+%Y%m%d %r') [Pipeline error] More information can be found in $ERROR_TMP." | tee -a $ERROR_TMP 2>&1 | tee -a $MAPPING_DIR/$MAPPING_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	exit 126
+    else
+	echo "$(date '+%Y%m%d %r') [Mapping: bwa sampe] Continue Mapping process" | tee -a $MAPPING_DIR/$MAPPING_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	echo "$(date '+%Y%m%d %r') [Mapping: bwa sampe] OK Alignment in sam format was generated. Will write output in $MAPPING_DIR directory." | tee -a $MAPPING_DIR/$MAPPING_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE	
+    fi
+    
 else
-    echo ".sai files do not exists"
+    echo "$(date '+%Y%m%d %r') [Mapping: bwa sampe] sai files do not exists or are empty" | tee -a $ERROR_TMP 2>&1 | tee -a $MAPPING_DIR/$MAPPING_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1    
     exit $?
 fi
 
-cat $MAPPING_TMP\_1 >> $MAPPING_DIR/$MAPPING_DIR_$DATE.log
-cat $MAPPING_TMP\_2 >> $MAPPING_DIR/$MAPPING_DIR_$DATE.log
-
-grep "^\[infer_isize\] inferred external" $MAPPING_DIR/$MAPPING_DIR_$DATE.log >> $LOG_DIR/$LOGFILE
+echo "$(date '+%Y%m%d %r') [Mapping] Get infer_isize" | tee -a $MAPPING_DIR/$MAPPING_DIR_$DATE.log 2>&1  | tee -a $LOG_DIR/$LOGFILE 2>&1
+grep "^\[infer_isize\] inferred external" $MAPPING_DIR/$MAPPING_DIR_$DATE.log | tee -a $MAPPING_DIR/$MAPPING_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
 
 ########################
 # SECTION FILTERING
@@ -558,40 +600,70 @@ fi
 # Section Analysis
 ########################
 
-if [[ ! -e $ANALYSIS_DIR ]]; then
-    mkdir $ANALYSIS_DIR 
+# Create Analysis directory if does not exist
+
+if [[ -d $ANALYSIS_DIR ]]; then
+    echo "$(date '+%Y%m%d %r') [Analysis] Start Analysis process" | tee -a $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+    echo "$(date '+%Y%m%d %r') [Analysis directory] OK $ANALYSIS_DIR directory already exists. Will write Analysis output in this directory." | tee -a $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+else
+    mkdir $ANALYSIS_DIR 2>$ERROR_TMP
+    if [[ $? -ne 0 ]]; then
+	echo "$(date '+%Y%m%d %r') [Analysis directory] Failed Analysis directory, $ANALYSIS_DIR, was not created." | tee -a $ERROR_TMP 2>&1 | tee -a $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code 126." | tee -a $ERROR_TMP 2>&1 | tee -a $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	echo "$(date '+%Y%m%d %r') [Pipeline error] More information can be found in $ERROR_TMP." | tee -a $LOG_DIR/$LOGFILE 2>&1
+	exit 126
+    else
+	echo "$(date '+%Y%m%d %r') [Analysis] Start Analysis process" | tee -a $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	echo "$(date '+%Y%m%d %r') [Analysis directory] OK $ANALYSIS_DIR directory was created sucessfully. Will write Analysis output in this directory." | tee -a $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+    fi
 fi
 
     # GENERATE BCF (PER SITE DEPTH, INFOS)
 
-if [[ -e $FILTER_DIR/$3_sorted.bam ]]; then
-    echo "# Sorted bam file exists ! Start to index fasta genome and compute ber base depth ..." >> $LOG_DIR/$LOGFILE    
+if [[ -s $FILTER_DIR/$3_sorted.bam ]]; then
+    echo "$(date '+%Y%m%d %r') [Analysis] Sorted bam file exists and is not empty! Start to index fasta genome and compute ber base depth ..." | tee -a $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1    
     #samtools faidx ${PARAMETERS_TABLE["REFERENCE_GENOME_FASTA"]} 2>$ANALYSIS_TMP\_1
     # This step will be done one time
     samtools mpileup \
 	-$([[ ${PARAMETERS_TABLE["samtools_mpileup_B"]} -eq "TRUE" ]] && echo -ne "B") \
 	-$([[ ${PARAMETERS_TABLE["samtools_mpileup_Q"]} ]] && echo -ne "Q" ${PARAMETERS_TABLE["samtools_mpileup_Q"]}) \
 	-$([[ ${PARAMETERS_TABLE["samtools_mpileup_u"]} -eq "TRUE" ]] && echo -ne "u") \
-	-$([[ ${PARAMETERS_TABLE["samtools_mpileup_f"]} -eq "TRUE" ]] && echo -ne "f") ${PARAMETERS_TABLE["REFERENCE_GENOME_FASTA"]} $FILTER_DIR/$3_sorted.bam > $ANALYSIS_DIR/$3.bcf 2>$ANALYSIS_TMP\_2
+	-$([[ ${PARAMETERS_TABLE["samtools_mpileup_f"]} -eq "TRUE" ]] && echo -ne "f") ${PARAMETERS_TABLE["REFERENCE_GENOME_FASTA"]} $FILTER_DIR/$3_sorted.bam > $ANALYSIS_DIR/$3.bcf 2>$ERROR_TMP	
+	if [[ $? -ne 0 ]]; then
+	echo "$(date '+%Y%m%d %r') [Analysis: samtools mpileup] Failed formatage of $FILTER_DIR/$3_sorted.bam" | tee -a $ERROR_TMP 2>&1 | tee -a $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code 126." | tee -a $ERROR_TMP 2>&1 | tee -a $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	echo "$(date '+%Y%m%d %r') [Pipeline error] More information can be found in $ERROR_TMP." | tee -a $ERROR_TMP 2>&1 | tee -a $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	exit 126
+    else
+	echo "$(date '+%Y%m%d %r') [Analysis: samtools mpileup] Continue Analysis process" | tee -a $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	echo "$(date '+%Y%m%d %r') [Analysis: samtools mpileup] OK Alignment was formatted. Will write output in $ANALYSIS_DIR directory." | tee -a $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+    fi
     # TODO mpileup parameters
     #echo "$(date '+%Y%m%d %r') [Analysis: faidx]">> $LOG_DIR/$LOGFILE
     #cat $ANALYSIS_TMP\_1 >> $LOG_DIR/$LOGFILE
-    echo "$(date '+%Y%m%d %r') [Analysis: mpileup] $3.bcf" >> $LOG_DIR/$LOGFILE
-    cat $ANALYSIS_TMP\_2 >> $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log
+    #echo "$(date '+%Y%m%d %r') [Analysis: samtools mpileup] $3.bcf" >> $LOG_DIR/$LOGFILE
 else
-    echo "Sorted bam file does not exist"
+    echo "$(date '+%Y%m%d %r') [Analysis] Sorted bam file does not exist or is empty" | tee -a $ERROR_TMP 2>&1 | tee -a $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1   
     exit $?
 fi
 
     # VARIANT CALLING
 
-if [[ -e $ANALYSIS_DIR/$3.bcf ]]; then
-    echo "# bcf file exists ! Start to call variant" >> $LOG_DIR/$LOGFILE   
-    bcftools view -$([[ ${PARAMETERS_TABLE["bcftools_view_c"]} -eq "TRUE" ]] && echo -ne "c")$([[ ${PARAMETERS_TABLE["bcftools_view_v"]} -eq "TRUE" ]] && echo -ne "v")$([[ ${PARAMETERS_TABLE["bcftools_view_g"]} -eq "TRUE" ]] && echo -ne "g") $ANALYSIS_DIR/$3.bcf > $ANALYSIS_DIR/$3.vcf 2>$ANALYSIS_TMP\_3
+if [[ -s $ANALYSIS_DIR/$3.bcf ]]; then
+    echo "$(date '+%Y%m%d %r') [Analysis: bcftools view] bcf file exists and is not empty! Start to call variant" | tee -a $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1   
+    bcftools view -$([[ ${PARAMETERS_TABLE["bcftools_view_c"]} -eq "TRUE" ]] && echo -ne "c")$([[ ${PARAMETERS_TABLE["bcftools_view_v"]} -eq "TRUE" ]] && echo -ne "v")$([[ ${PARAMETERS_TABLE["bcftools_view_g"]} -eq "TRUE" ]] && echo -ne "g") $ANALYSIS_DIR/$3.bcf > $ANALYSIS_DIR/$3.vcf 2>$ERROR_TMP	
+	if [[ $? -ne 0 ]]; then
+	echo "$(date '+%Y%m%d %r') [Analysis: bcftools view] Failed variant calling" | tee -a $ERROR_TMP 2>&1 | tee -a $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code 126." | tee -a $ERROR_TMP 2>&1 | tee -a $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	echo "$(date '+%Y%m%d %r') [Pipeline error] More information can be found in $ERROR_TMP." | tee -a $ERROR_TMP 2>&1 | tee -a $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	exit 126
+    else
+	echo "$(date '+%Y%m%d %r') [Analysis: bcftools view] Continue Analysis process" | tee -a $ANALYSIS_DIR/ANALYSIS_DIR_$_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	echo "$(date '+%Y%m%d %r') [Analysis: bcftools view] OK variant calling was done. Will write output in $ANALYSIS_DIR/ directory." | tee -a $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+    fi
     echo "$(date '+%Y%m%d %r') [Analysis: bcftools view] $3.vcf">> $LOG_DIR/$LOGFILE
-    cat $ANALYSIS_TMP\_3 >> $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log
 else
-    echo "BCF file does not exist"
+    echo "$(date '+%Y%m%d %r') [Analysis: bcftools view] bcf file does not exist or is empty" | tee -a $ERROR_TMP 2>&1 | tee -a $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1   
     exit $?
 fi
 
@@ -601,37 +673,72 @@ fi
     
     # COMPRESS and INDEX VCF file 
 
-if [[ -e $ANALYSIS_DIR/$3.vcf ]]; then
-    echo "# vcf file exists ! Start to compress it ..." >> $LOG_DIR/$LOGFILE   
-    bgzip -$([[ ${PARAMETERS_TABLE["bgzip_f"]} -eq "TRUE" ]] && echo -ne "f")$([[ ${PARAMETERS_TABLE["bgzip_c"]} -eq "TRUE" ]] && echo -ne "c") $ANALYSIS_DIR/$3.vcf > $ANALYSIS_DIR/$3.vcf.gz
-    # TO DO Standard error
+if [[ -s $ANALYSIS_DIR/$3.vcf ]]; then
+    echo "$(date '+%Y%m%d %r') [Analysis] vcf file exists and is not empty! Start to compress it ..." | tee -a $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1 
+    bgzip -$([[ ${PARAMETERS_TABLE["bgzip_f"]} -eq "TRUE" ]] && echo -ne "f")$([[ ${PARAMETERS_TABLE["bgzip_c"]} -eq "TRUE" ]] && echo -ne "c") $ANALYSIS_DIR/$3.vcf > $ANALYSIS_DIR/$3.vcf.gz 2>$ERROR_TMP	
+	if [[ $? -ne 0 ]]; then
+	echo "$(date '+%Y%m%d %r') [Analysis: bgzip] Failed compression of $3.vcf" | tee -a $ERROR_TMP 2>&1 | tee -a $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code 126." | tee -a $ERROR_TMP 2>&1 | tee -a $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	echo "$(date '+%Y%m%d %r') [Pipeline error] More information can be found in $ERROR_TMP." | tee -a $ERROR_TMP 2>&1 | tee -a $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	exit 126
+    else
+	echo "$(date '+%Y%m%d %r') [Analysis: bgzip] Continue Analysis process" | tee -a $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	echo "$(date '+%Y%m%d %r') [Analysis: bgzip] OK $3.vcf was compressed. Will write output in $ANALYSIS_DIR directory." | tee -a $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+    fi
+
     echo "$(date '+%Y%m%d %r') [Analysis: Compress vcf] $3.vcf.gz">> $LOG_DIR/$LOGFILE
-    tabix -$([[ ${PARAMETERS_TABLE["tabix_p"]} ]] && echo -ne "p" ${PARAMETERS_TABLE["tabix_p"]}) -$([[ ${PARAMETERS_TABLE["tabix_f"]} -eq "TRUE" ]] && echo -ne "f") $ANALYSIS_DIR/$3.${PARAMETERS_TABLE["tabix_p"]}.gz
-    # TO DO Standard error
-    echo "$(date '+%Y%m%d %r') [Analysis: tabix (Index compressed ${PARAMETERS_TABLE['tabix_p']})] $3.${PARAMETERS_TABLE['tabix_p']}.gz">> $LOG_DIR/$LOGFILE
+    
+    tabix -$([[ ${PARAMETERS_TABLE["tabix_p"]} ]] && echo -ne "p" ${PARAMETERS_TABLE["tabix_p"]}) -$([[ ${PARAMETERS_TABLE["tabix_f"]} -eq "TRUE" ]] && echo -ne "f") $ANALYSIS_DIR/$3.${PARAMETERS_TABLE["tabix_p"]}.gz 2>$ERROR_TMP	
+	if [[ $? -ne 0 ]]; then
+	echo "$(date '+%Y%m%d %r') [Analysis: tabix] Failed indexation" | tee -a $ERROR_TMP 2>&1 | tee -a $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code 126." | tee -a $ERROR_TMP 2>&1 | tee -a $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	echo "$(date '+%Y%m%d %r') [Pipeline error] More information can be found in $ERROR_TMP." | tee -a $ERROR_TMP 2>&1 | tee -a $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	exit 126
+    else
+	echo "$(date '+%Y%m%d %r') [Analysis: tabix] Continue Analysis process" | tee -a $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	echo "$(date '+%Y%m%d %r') [Analysis: tabix] OK Compressed vcf was indexed. Will write output in $ANALYSIS_DIR directory." | tee -a $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR
+	fi
+
+    #echo "$(date '+%Y%m%d %r') [Analysis: tabix] (Index compressed ${PARAMETERS_TABLE['tabix_p']})] $3.${PARAMETERS_TABLE['tabix_p']}.gz" | tee -a $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1 
+
 else
-    echo "${PARAMETERS_TABLE['tabix_p']} file does not exist"
+    echo "$(date '+%Y%m%d %r') [Analysis: tabix] ${PARAMETERS_TABLE['tabix_p']} file does not exist" | tee -a $ERROR_TMP 2>&1 | tee -a $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
     exit $?
 fi  
  
     # SNP EFFECT PREDICTION
 
- echo "# Start snpEff ..." >> $LOG_DIR/$LOGFILE   
+echo "$(date '+%Y%m%d %r') [Analysis] Start snpEff ..." | tee -a $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1 
 
 java -jar ${PARAMETERS_TABLE["SNPEFF_PATH"]}/snpEff.jar ${PARAMETERS_TABLE["snpeff_data"]} \
     -c ${PARAMETERS_TABLE["SNPEFF_PATH"]}/snpEff.config \
     -i ${PARAMETERS_TABLE["snpeff_inFile_format"]} \
-    -o vcf $ANALYSIS_DIR/$3.vcf > $ANALYSIS_DIR/$3_snpeff.vcf 2>$ANALYSIS_TMP\_4
-    
+    -o vcf $ANALYSIS_DIR/$3.vcf > $ANALYSIS_DIR/$3_snpeff.vcf 2>$ERROR_TMP	
+	if [[ $? -ne 0 ]]; then
+	echo "$(date '+%Y%m%d %r') [Analysis: snpEff] Failed snpEff" | tee -a $ERROR_TMP 2>&1 | tee -a $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code 126." | tee -a $ERROR_TMP 2>&1 | tee -a $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	echo "$(date '+%Y%m%d %r') [Pipeline error] More information can be found in $ERROR_TMP." | tee -a $ERROR_TMP 2>&1 | tee -a $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	exit 126
+    else
+	echo "$(date '+%Y%m%d %r') [Analysis: snpEff] Continue Analysis process" | tee -a $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	echo "$(date '+%Y%m%d %r') [Analysis: snpEff] OK $3_snpeff.vcf. Will write output in $ANALYSIS_DIR directory." | tee -a $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR
+	fi   
 java -jar ${PARAMETERS_TABLE["SNPEFF_PATH"]}/snpEff.jar ${PARAMETERS_TABLE["snpeff_data"]} \
     -c ${PARAMETERS_TABLE["SNPEFF_PATH"]}/snpEff.config \
     -i ${PARAMETERS_TABLE["snpeff_inFile_format"]} \
-    -o txt $ANALYSIS_DIR/$3.vcf > $ANALYSIS_DIR/$3_snpeff.txt 2>$ANALYSIS_TMP\_4
+    -o txt $ANALYSIS_DIR/$3.vcf > $ANALYSIS_DIR/$3_snpeff.txt 2>$ERROR_TMP	
+	if [[ $? -ne 0 ]]; then
+	echo "$(date '+%Y%m%d %r') [Analysis: snpEff] Failed snpEff" | tee -a $ERROR_TMP 2>&1 | tee -a $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code 126." | tee -a $ERROR_TMP 2>&1 | tee -a $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	echo "$(date '+%Y%m%d %r') [Pipeline error] More information can be found in $ERROR_TMP." | tee -a $ERROR_TMP 2>&1 | tee -a $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	exit 126
+    else
+	echo "$(date '+%Y%m%d %r') [Analysis: snpEff] Continue Analysis process" | tee -a $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	echo "$(date '+%Y%m%d %r') [Analysis: snpEff] OK $3_snpeff.txt. Will write output in $ANALYSIS_DIR directory." | tee -a $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR
+	fi
 
-echo "$(date '+%Y%m%d %r') [Analysis: snpeff]">> $LOG_DIR/$LOGFILE
 mv snpEff_* $ANALYSIS_DIR/.
 cat $ANALYSIS_TMP\_4 >> $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log
-
 
 #####################
 # CLEANING
