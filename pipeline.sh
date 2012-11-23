@@ -924,7 +924,7 @@ if [[ -s $ANALYSIS_DIR/$3.vcf ]]; then
     else
 	cat $ERROR_TMP | tee -a $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1 
 	echo "$(date '+%Y%m%d %r') [Analysis: tabix] Continue Analysis process" | tee -a $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
-	echo "$(date '+%Y%m%d %r') [Analysis: tabix] OK Compressed vcf was indexed. Will write output in $ANALYSIS_DIR directory." | tee -a $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR
+	echo "$(date '+%Y%m%d %r') [Analysis: tabix] OK Compressed vcf was indexed. Will write output in $ANALYSIS_DIR directory." | tee -a $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
 	fi
 
     #echo "$(date '+%Y%m%d %r') [Analysis: tabix] (Index compressed ${PARAMETERS_TABLE['tabix_p']})] $3.${PARAMETERS_TABLE['tabix_p']}.gz" | tee -a $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1 
@@ -951,7 +951,7 @@ if [[ $? -ne 0 ]]; then
     else
 	cat $ERROR_TMP | tee -a $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1 
 	echo "$(date '+%Y%m%d %r') [Analysis: snpEff] Continue Analysis process" | tee -a $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
-	echo "$(date '+%Y%m%d %r') [Analysis: snpEff] OK $3_snpeff.vcf. Will write output in $ANALYSIS_DIR directory." | tee -a $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR
+	echo "$(date '+%Y%m%d %r') [Analysis: snpEff] OK $3_snpeff.vcf. Will write output in $ANALYSIS_DIR directory." | tee -a $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
 	fi   
 java -jar ${PARAMETERS_TABLE["SNPEFF_PATH"]}/snpEff.jar ${PARAMETERS_TABLE["snpeff_data"]} \
     -c ${PARAMETERS_TABLE["SNPEFF_PATH"]}/snpEff.config \
@@ -966,7 +966,7 @@ if [[ $? -ne 0 ]]; then
     else
 	cat $ERROR_TMP | tee -a $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1 
 	echo "$(date '+%Y%m%d %r') [Analysis: snpEff] Continue Analysis process" | tee -a $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
-	echo "$(date '+%Y%m%d %r') [Analysis: snpEff] OK $3_snpeff.txt. Will write output in $ANALYSIS_DIR directory." | tee -a $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR
+	echo "$(date '+%Y%m%d %r') [Analysis: snpEff] OK $3_snpeff.txt. Will write output in $ANALYSIS_DIR directory." | tee -a $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
 	fi
 
 echo "$(date '+%Y%m%d %r') [Analysis: snpeff]">> $LOG_DIR/$LOGFILE
