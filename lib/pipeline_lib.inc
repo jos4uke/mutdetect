@@ -13,11 +13,38 @@
 # Usage: in_array "$needle" "${haystack[@]}"
 # See: http://fvue.nl/wiki/Bash:_Check_if_array_element_exists
 in_array() {
-    local hay needle=$1 hays=$2
-    for hay in "${hays[@]}"; do
+    local hay needle=$1
+    shift
+    for hay; do
         [[ $hay -eq $needle ]] && return 0
     done
     return 1
+}
+
+#------------------
+# toupper function
+#
+toupper()
+{
+    local char="$*"
+    out=$(echo $char | tr [:lower:] [:upper:]) 
+    local retval=$? 
+    echo "$out" 
+    unset out char 
+    return $retval
+}
+
+#------------------
+# tolower function
+#
+tolower()
+{
+    local char="$*"
+    out=$(echo $char | tr [:upper:] [:lower:]) 
+    local retval=$? 
+    echo "$out" 
+    unset out char 
+    return $retval
 }
 
 #------------------------------------------
@@ -175,6 +202,15 @@ check_params_validity()
 		    rtrn=5
 		fi
 		;;
+	    "bypass_fastqc_failure_report_checking") 
+		echo -e $check_value_type_msg
+		if [[ $(toupper $value) -eq "TRUE" || $(toupper $value) -eq "FALSE" || $value -eq 1 || $value -eq 0 ]]; then
+		    echo -e $ok_msg
+		else
+		    echo -e $bool_err_msg >&2
+		    rtrn=5
+		fi
+		;;	    
 	    "bwa_aln_t") 
 		echo -e $check_value_type_msg
 		if !(declare -i value); then
@@ -249,7 +285,7 @@ check_params_validity()
 		;;
 	    "multiple_hit_allowed") 
 		echo -e $check_value_type_msg
-		if [[ $value -eq "TRUE" || $value -eq "FALSE" || $value -eq 1 || $value -eq 0 ]]; then
+		if [[ $(toupper $value) -eq "TRUE" || $(toupper $value) -eq "FALSE" || $value -eq 1 || $value -eq 0 ]]; then
 		    echo -e $ok_msg
 		else
 		    echo -e $bool_err_msg >&2
@@ -392,7 +428,7 @@ check_params_validity()
 		;;
 	    "samtools_view_b") 
 		echo -e $check_value_type_msg
-		if [[ $value -eq "TRUE" || $value -eq "FALSE" || $value -eq 1 || $value -eq 0 ]]; then
+		if [[ $(toupper $value) -eq "TRUE" || $(toupper $value) -eq "FALSE" || $value -eq 1 || $value -eq 0 ]]; then
 		    echo -e $ok_msg
 		else
 		    echo -e $bool_err_msg >&2
@@ -401,7 +437,7 @@ check_params_validity()
 		;;
 	    "samtools_view_S") 
 		echo -e $check_value_type_msg
-		if [[ $value -eq "TRUE" || $value -eq "FALSE" || $value -eq 1 || $value -eq 0 ]]; then
+		if [[ $(toupper $value) -eq "TRUE" || $(toupper $value) -eq "FALSE" || $value -eq 1 || $value -eq 0 ]]; then
 		    echo -e $ok_msg
 		else
 		    echo -e $bool_err_msg >&2
@@ -410,7 +446,7 @@ check_params_validity()
 		;;
 	    "samtools_mpileup_B") 
 		echo -e $check_value_type_msg
-		if [[ $value -eq "TRUE" || $value -eq "FALSE" || $value -eq 1 || $value -eq 0 ]]; then
+		if [[ $(toupper $value) -eq "TRUE" || $(toupper $value) -eq "FALSE" || $value -eq 1 || $value -eq 0 ]]; then
 		    echo -e $ok_msg
 		else
 		    echo -e $bool_err_msg >&2
@@ -419,7 +455,7 @@ check_params_validity()
 		;;
 	    "samtools_mpileup_u") 
 		echo -e $check_value_type_msg
-		if [[ $value -eq "TRUE" || $value -eq "FALSE" || $value -eq 1 || $value -eq 0 ]]; then
+		if [[ $(toupper $value) -eq "TRUE" || $(toupper $value) -eq "FALSE" || $value -eq 1 || $value -eq 0 ]]; then
 		    echo -e $ok_msg
 		else
 		    echo -e $bool_err_msg >&2
@@ -428,7 +464,7 @@ check_params_validity()
 		;;
 	    "samtools_mpileup_f") 
 		echo -e $check_value_type_msg
-		if [[ $value -eq "TRUE" || $value -eq "FALSE" || $value -eq 1 || $value -eq 0 ]]; then
+		if [[ $(toupper $value) -eq "TRUE" || $(toupper $value) -eq "FALSE" || $value -eq 1 || $value -eq 0 ]]; then
 		    echo -e $ok_msg
 		else
 		    echo -e $bool_err_msg >&2
@@ -446,7 +482,7 @@ check_params_validity()
 		;;
 	    "bcftools_view_c") 
 		echo -e $check_value_type_msg
-		if [[ $value -eq "TRUE" || $value -eq "FALSE" || $value -eq 1 || $value -eq 0 ]]; then
+		if [[ $(toupper $value) -eq "TRUE" || $(toupper $value) -eq "FALSE" || $value -eq 1 || $value -eq 0 ]]; then
 		    echo -e $ok_msg
 		else
 		    echo -e $bool_err_msg >&2
@@ -455,7 +491,7 @@ check_params_validity()
 		;;
 	    "bcftools_view_v") 
 		echo -e $check_value_type_msg
-		if [[ $value -eq "TRUE" || $value -eq "FALSE" || $value -eq 1 || $value -eq 0 ]]; then
+		if [[ $(toupper $value) -eq "TRUE" || $(toupper $value) -eq "FALSE" || $value -eq 1 || $value -eq 0 ]]; then
 		    echo -e $ok_msg
 		else
 		    echo -e $bool_err_msg >&2
@@ -464,7 +500,7 @@ check_params_validity()
 		;;
 	    "bcftools_view_g") 
 		echo -e $check_value_type_msg
-		if [[ $value -eq "TRUE" || $value -eq "FALSE" || $value -eq 1 || $value -eq 0 ]]; then
+		if [[ $(toupper $value) -eq "TRUE" || $(toupper $value) -eq "FALSE" || $value -eq 1 || $value -eq 0 ]]; then
 		    echo -e $ok_msg
 		else
 		    echo -e $bool_err_msg >&2
@@ -473,7 +509,7 @@ check_params_validity()
 		;;
 	    "bgzip_f") 
 		echo -e $check_value_type_msg
-		if [[ $value -eq "TRUE" || $value -eq "FALSE" || $value -eq 1 || $value -eq 0 ]]; then
+		if [[ $(toupper $value) -eq "TRUE" || $(toupper $value) -eq "FALSE" || $value -eq 1 || $value -eq 0 ]]; then
 		    echo -e $ok_msg
 		else
 		    echo -e $bool_err_msg >&2
@@ -482,7 +518,7 @@ check_params_validity()
 		;;
 	    "bgzip_c") 
 		echo -e $check_value_type_msg
-		if [[ $value -eq "TRUE" || $value -eq "FALSE" || $value -eq 1 || $value -eq 0 ]]; then
+		if [[ $(toupper $value) -eq "TRUE" || $(toupper $value) -eq "FALSE" || $value -eq 1 || $value -eq 0 ]]; then
 		    echo -e $ok_msg
 		else
 		    echo -e $bool_err_msg >&2
@@ -491,7 +527,7 @@ check_params_validity()
 		;;
 	    "tabix_f") 
 		echo -e $check_value_type_msg
-		if [[ $value -eq "TRUE" || $value -eq "FALSE" || $value -eq 1 || $value -eq 0 ]]; then
+		if [[ $(toupper $value) -eq "TRUE" || $(toupper $value) -eq "FALSE" || $value -eq 1 || $value -eq 0 ]]; then
 		    echo -e $ok_msg
 		else
 		    echo -e $bool_err_msg >&2
@@ -569,6 +605,26 @@ check_params_interval_validity()
 	return $rtrn
     fi
 }
+
+#----------------------------------------------
+# check_fastqc_quality_failure_report function
+#
+check_fastqc_quality_failure_report()
+{
+    fastqc_summary_file=$1
+
+    out=$(grep -E "^FAIL[[:space:]]" $fastqc_summary_file)
+    rtrn=$?
+    if [[ -n $out ]]
+	then
+	echo "$out" >&2
+	return $rtrn
+	
+	else
+	return $rtrn
+    fi
+}
+
 
 #-----------------------------------------------------------
 # remove_reads_with_more_than_x_independent_events function
