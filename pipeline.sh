@@ -971,7 +971,6 @@ if [[ $? -ne 0 ]]; then
 
 echo "$(date '+%Y%m%d %r') [Analysis: snpeff]">> $LOG_DIR/$LOGFILE
 mv snpEff_* $ANALYSIS_DIR/.
-cat $ANALYSIS_TMP\_4 >> $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log
 
 
 #####################
