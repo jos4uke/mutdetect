@@ -52,7 +52,7 @@ declare -A PARAMETERS_TABLE
 #==============================================
 [[ $# -ne "$ARGS" ]] && { printf %s "\
 Program: $(basename $0)
-Version: none
+Version: 0.0.1
 Contact: IJPB Bioinformatics Dev Team
 
 Usage: $(basename $0) SEQfile1 SEQfile2 ECHname
