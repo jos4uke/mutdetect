@@ -1,6 +1,6 @@
 #! /bin/bash
 #
-# PIPELINE FUNCTIONS LIBRARY
+# MUTDETECT FUNCTIONS LIBRARY
 #
 
 #-------------------
@@ -48,9 +48,9 @@ tolower()
 }
 
 #------------------------------------------
-# get_pipeline_default_parameters function
+# get_mutdetect_default_parameters function
 # 
-get_pipeline_default_parameters()
+get_mutdetect_default_parameters()
 {
     INFILE=$1
     #declare -A PARAMETERS_TABLE
@@ -95,9 +95,9 @@ get_pipeline_default_parameters()
 }
 
 #---------------------------------------
-# get_pipeline_user_parameters function
+# get_mutdetect_user_parameters function
 # 
-get_pipeline_user_parameters()
+get_mutdetect_user_parameters()
 {
     INFILE=$1
 

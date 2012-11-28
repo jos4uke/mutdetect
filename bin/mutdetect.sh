@@ -12,7 +12,7 @@
 PROD_PREFIX="/usr/local"
 DEV_PREFIX="$(pwd)/.."
 PREFIX=$DEV_PREFIX # TO BE CHANGED WHEN SWITCHING TO PROD
-. $PREFIX/lib/pipeline_lib.inc
+. $PREFIX/share/mutdetect/lib/mutdetect_lib.inc
 
 # Positionnement des variables
 
@@ -21,9 +21,9 @@ DATE=$(date '+%Y_%m_%d_%H_%M_%S')
 LOGFILE=$3_$DATE\_log.txt
 WORKING_DIR=$(pwd)
 PIPELINE_SHARED=$PREFIX/share/$(basename ${0%.*})
-PIPELINE_DEFAULT_CONFIG=$PIPELINE_SHARED/etc/pipeline_default.config
-PROD_PIPELINE_USER_CONFIG=$WORKING_DIR/pipeline_user.config
-DEV_PIPELINE_USER_CONFIG=$PIPELINE_SHARED/pipeline_user.config
+PIPELINE_DEFAULT_CONFIG=$PIPELINE_SHARED/etc/mutdetect_default.config
+PROD_PIPELINE_USER_CONFIG=$WORKING_DIR/etc/mutdetect_user.config
+DEV_PIPELINE_USER_CONFIG=$PIPELINE_SHARED/etc/mutdetect_user.config
 PIPELINE_USER_CONFIG=$DEV_PIPELINE_USER_CONFIG # TO BE CHANGED WHEN SWITCHING TO PROD
 
 LOG_DIR="log"
@@ -39,7 +39,7 @@ MAPPING_TMP=$MAPPING_DIR/tmp
 FILTER_TMP=$FILTER_DIR/tmp
 ANALYSIS_TMP=$ANALYSIS_DIR/tmp
 
-ERROR_TMP="/tmp/tmp_pipeline_error_${USER}_$DATE.log"
+ERROR_TMP="/tmp/tmp_mutdetect_error_${USER}_$DATE.log"
 
 # DECLARE GLOBAL VARIABLE
 
@@ -116,19 +116,19 @@ else
     exit 4
 fi
 
-# TEST if pipeline_default.config exists and put the parameters into a hash table
+# TEST if mutdetect_default.config exists and put the parameters into a hash table
 
 if [[ -e $PIPELINE_DEFAULT_CONFIG ]]; then
-    echo "$(date '+%Y%m%d %r') [get_pipeline_default_parameters] OK $PIPELINE_DEFAULT_CONFIG default config file exists! Let's check parameters validity ..." | tee -a $LOG_DIR/$LOGFILE 2>&1
+    echo "$(date '+%Y%m%d %r') [get_mutdetect_default_parameters] OK $PIPELINE_DEFAULT_CONFIG default config file exists! Let's check parameters validity ..." | tee -a $LOG_DIR/$LOGFILE 2>&1
     # load default config parameters
-    get_pipeline_default_parameters $PIPELINE_DEFAULT_CONFIG 2>$ERROR_TMP
+    get_mutdetect_default_parameters $PIPELINE_DEFAULT_CONFIG 2>$ERROR_TMP
     rtrn=$?
     if [[ $rtrn -ne 0 ]]; then
-	echo "$(date '+%Y%m%d %r') [get_pipeline_default_parameters] Failed Default parameters were not loaded. An error occurs: $(cat $ERROR_TMP)" | tee -a $LOG_DIR/$LOGFILE 2>&1
+	echo "$(date '+%Y%m%d %r') [get_mutdetect_default_parameters] Failed Default parameters were not loaded. An error occurs: $(cat $ERROR_TMP)" | tee -a $LOG_DIR/$LOGFILE 2>&1
 	echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code $rtrn." | tee -a $LOG_DIR/$LOGFILE 2>&1
 	exit $rtrn
     else
-	echo "$(date '+%Y%m%d %r') [get_pipeline_default_parameters] OK Default config parameters were loaded successfully." | tee -a $LOG_DIR/$LOGFILE 2>&1
+	echo "$(date '+%Y%m%d %r') [get_mutdetect_default_parameters] OK Default config parameters were loaded successfully." | tee -a $LOG_DIR/$LOGFILE 2>&1
     fi
     # check default config params type validity
     check_params_validity >> $LOG_DIR/$LOGFILE 2>$ERROR_TMP
@@ -153,24 +153,24 @@ if [[ -e $PIPELINE_DEFAULT_CONFIG ]]; then
 	echo "$(date '+%Y%m%d %r') [check_params_interval_validity] OK Default config parameters interval checking was done successfully." | tee -a $LOG_DIR/$LOGFILE 2>&1
     fi
 else 
-    echo "$(date '+%Y%m%d %r') [get_pipeline_default_parameters] Failed $PIPELINE_DEFAULT_CONFIG file does not exist." | tee -a $LOG_DIR/$LOGFILE 2>&1
+    echo "$(date '+%Y%m%d %r') [get_mutdetect_default_parameters] Failed $PIPELINE_DEFAULT_CONFIG file does not exist." | tee -a $LOG_DIR/$LOGFILE 2>&1
     echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code 3." | tee -a $LOG_DIR/$LOGFILE 2>&1
     exit 3
 fi 
 
-# TEST if pipeline_user.config exists and then override default parameters if user defined parameters exist
+# TEST if mutdetect_user.config exists and then override default parameters if user defined parameters exist
 
 if [[ -s $PIPELINE_USER_CONFIG ]]; then
-    echo "$(date '+%Y%m%d %r') [get_pipeline_user_parameters] OK $PIPELINE_USER_CONFIG user config file exists! Let's check parameters validity ..." | tee -a $LOG_DIR/$LOGFILE 2>&1
+    echo "$(date '+%Y%m%d %r') [get_mutdetect_user_parameters] OK $PIPELINE_USER_CONFIG user config file exists! Let's check parameters validity ..." | tee -a $LOG_DIR/$LOGFILE 2>&1
     # load user config parameters
-    get_pipeline_user_parameters $PIPELINE_USER_CONFIG 2>$ERROR_TMP
+    get_mutdetect_user_parameters $PIPELINE_USER_CONFIG 2>$ERROR_TMP
     rtrn=$?
     if [[ $rtrn -ne 0 ]]; then
-	echo "$(date '+%Y%m%d %r') [get_pipeline_user_parameters] Failed User parameters were not loaded. An error occurs: $(cat $ERROR_TMP)" | tee -a $LOG_DIR/$LOGFILE 2>&1
+	echo "$(date '+%Y%m%d %r') [get_mutdetect_user_parameters] Failed User parameters were not loaded. An error occurs: $(cat $ERROR_TMP)" | tee -a $LOG_DIR/$LOGFILE 2>&1
 	echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code $rtrn." | tee -a $LOG_DIR/$LOGFILE 2>&1
 	exit $rtrn
     else
-	echo "$(date '+%Y%m%d %r') [get_pipeline_user_parameters] OK User config parameters were loaded successfully." | tee -a $LOG_DIR/$LOGFILE 2>&1
+	echo "$(date '+%Y%m%d %r') [get_mutdetect_user_parameters] OK User config parameters were loaded successfully." | tee -a $LOG_DIR/$LOGFILE 2>&1
 	if [[ -s $ERROR_TMP ]]; then
 	    cat $ERROR_TMP 2>&1 >> $LOG_DIR/$LOGFILE
 	fi
@@ -198,7 +198,7 @@ if [[ -s $PIPELINE_USER_CONFIG ]]; then
 	echo "$(date '+%Y%m%d %r') [check_params_interval_validity] OK User config parameters interval checking was done successfully." | tee -a $LOG_DIR/$LOGFILE 2>&1
     fi
 else 
-    echo "$(date '+%Y%m%d %r') [get_pipeline_user_parameters] Failed $PIPELINE_USER_CONFIG file does not exist or is empty." | tee -a $LOG_DIR/$LOGFILE 2>&1
+    echo "$(date '+%Y%m%d %r') [get_mutdetect_user_parameters] Failed $PIPELINE_USER_CONFIG file does not exist or is empty." | tee -a $LOG_DIR/$LOGFILE 2>&1
     echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code 3." | tee -a $LOG_DIR/$LOGFILE 2>&1
     exit 3
 fi
@@ -985,9 +985,9 @@ mv snpEff_* $ANALYSIS_DIR/.
 ###################
 
 # TODO: Pipeline.Rnw is a resource which should not be in the user working directory
-# This resource file, like the other pipeline resources, should be placed in some location shared by all users: like /usr/local/share/<pipeline_name_dir>
+# This resource file, like the other pipeline resources, should be placed in some location shared by all users: like /usr/local/share/<mutdetect_name_dir>
 # Consider to move all template and other resource files: .Rnw, .docx, etc. to this shared location
-# Do not forget to create the corresponding variable path: PIPELINE_SHARED=$PREFIX/share/<pipeline_name_dir> with PREFIX=/usr/local
+# Do not forget to create the corresponding variable path: PIPELINE_SHARED=$PREFIX/share/<mutdetect_name_dir> with PREFIX=/usr/local
 #
 echo "$(date '+%Y%m%d %r') [Rnw filling]">> $LOG_DIR/$LOGFILE
 
