@@ -1,7 +1,9 @@
 #! /bin/bash
 
 # Equipe Dev 
-# Script provisoire pour la détection de mutation 
+# Script pour la détection de mutation 
+
+# version: 0.0.1
 
 ########################
 # SECTION CONFIGURATION
@@ -11,7 +13,7 @@
 
 PROD_PREFIX="/usr/local"
 DEV_PREFIX="$(pwd)/.."
-PREFIX=$DEV_PREFIX # TO BE CHANGED WHEN SWITCHING TO PROD
+PREFIX=$PROD_PREFIX # TO BE CHANGED WHEN SWITCHING TO PROD
 . $PREFIX/share/mutdetect/lib/mutdetect_lib.inc
 
 # Positionnement des variables
@@ -24,7 +26,7 @@ PIPELINE_SHARED=$PREFIX/share/$(basename ${0%.*})
 PIPELINE_DEFAULT_CONFIG=$PIPELINE_SHARED/etc/mutdetect_default.config
 PROD_PIPELINE_USER_CONFIG=$WORKING_DIR/etc/mutdetect_user.config
 DEV_PIPELINE_USER_CONFIG=$PIPELINE_SHARED/etc/mutdetect_user.config
-PIPELINE_USER_CONFIG=$DEV_PIPELINE_USER_CONFIG # TO BE CHANGED WHEN SWITCHING TO PROD
+PIPELINE_USER_CONFIG=$PROD_PIPELINE_USER_CONFIG # TO BE CHANGED WHEN SWITCHING TO PROD
 
 LOG_DIR="log"
 TRIMMING_DIR="01_Trimming"
