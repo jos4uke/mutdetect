@@ -24,7 +24,7 @@ LOGFILE=$3_$DATE\_log.txt
 WORKING_DIR=$(pwd)
 PIPELINE_SHARED=$PREFIX/share/$(basename ${0%.*})
 PIPELINE_DEFAULT_CONFIG=$PIPELINE_SHARED/etc/mutdetect_default.config
-PROD_PIPELINE_USER_CONFIG=$WORKING_DIR/etc/mutdetect_user.config
+PROD_PIPELINE_USER_CONFIG=$WORKING_DIR/mutdetect_user.config
 DEV_PIPELINE_USER_CONFIG=$PIPELINE_SHARED/etc/mutdetect_user.config
 PIPELINE_USER_CONFIG=$PROD_PIPELINE_USER_CONFIG # TO BE CHANGED WHEN SWITCHING TO PROD
 
@@ -200,9 +200,7 @@ if [[ -s $PIPELINE_USER_CONFIG ]]; then
 	echo "$(date '+%Y%m%d %r') [Check config: check_params_interval_validity] OK User config parameters interval checking was done successfully." | tee -a $LOG_DIR/$LOGFILE 2>&1
     fi
 else 
-    echo "$(date '+%Y%m%d %r') [Check config: get_mutdetect_user_parameters] Failed $PIPELINE_USER_CONFIG file does not exist or is empty." | tee -a $LOG_DIR/$LOGFILE 2>&1
-    echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code 3." | tee -a $LOG_DIR/$LOGFILE 2>&1
-    exit 3
+    echo "$(date '+%Y%m%d %r') [Check config: get_mutdetect_user_parameters] No $PIPELINE_USER_CONFIG file does exist, will proceed with default config parameters." | tee -a $LOG_DIR/$LOGFILE 2>&1
 fi
 
 # Report parameters in LOGFILE
