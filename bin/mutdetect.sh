@@ -3,7 +3,7 @@
 # Equipe Dev 
 # Script pour la détection de mutation 
 
-# version: 0.0.2
+VERSION=0.0.3
 
 ########################
 # SECTION CONFIGURATION
@@ -52,7 +52,7 @@ declare -A PARAMETERS_TABLE
 #==============================================
 [[ $# -ne "$ARGS" ]] && { printf %s "\
 Program: $(basename $0)
-Version: 0.0.2
+Version: $VERSION
 Contact: IJPB Bioinformatics Dev Team
 
 Usage: $(basename $0) SEQfile1 SEQfile2 ECHname
@@ -73,7 +73,7 @@ exit 1; }
 # Create log directory
 
 if [[ -d $LOG_DIR ]]; then
-    echo "$(date '+%Y%m%d %r') [$(basename $0)] Start running the pipeline." | tee $LOG_DIR/$LOGFILE 2>&1
+    echo "$(date '+%Y%m%d %r') [$(basename $0)] Start running the pipeline (version: $VERSION)." | tee $LOG_DIR/$LOGFILE 2>&1
     echo "$(date '+%Y%m%d %r') [$(basename $0)] Executed command: $0 $*" | tee -a $LOG_DIR/$LOGFILE 2>&1
     echo "$(date '+%Y%m%d %r') [Log directory] OK $LOG_DIR directory already exists. Will write log files in this directory." >> $LOG_DIR/$LOGFILE
 else
