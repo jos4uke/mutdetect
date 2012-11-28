@@ -841,7 +841,7 @@ fi
     # GENERATE BCF (PER SITE DEPTH, INFOS)
 
 if [[ -s $FILTER_DIR/$3_sorted.bam ]]; then
-    echo "$(date '+%Y%m%d %r') [Analysis] Sorted bam file exists and is not empty! Start to index fasta genome and compute per base depth ..." | tee -a $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1    
+    echo "$(date '+%Y%m%d %r') [Analysis] Sorted bam file exists and is not empty! Start to index fasta genome and compute ber base depth ..." | tee -a $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1    
     #samtools faidx ${PARAMETERS_TABLE["REFERENCE_GENOME_FASTA"]} 2>$ANALYSIS_TMP\_1
     # This step will be done one time
     samtools mpileup \
