@@ -3,7 +3,7 @@
 # Equipe Dev 
 # Script pour la détection de mutation 
 
-# version: 0.0.1
+# version: 0.0.2
 
 ########################
 # SECTION CONFIGURATION
@@ -52,7 +52,7 @@ declare -A PARAMETERS_TABLE
 #==============================================
 [[ $# -ne "$ARGS" ]] && { printf %s "\
 Program: $(basename $0)
-Version: 0.0.1
+Version: 0.0.2
 Contact: IJPB Bioinformatics Dev Team
 
 Usage: $(basename $0) SEQfile1 SEQfile2 ECHname
