@@ -643,26 +643,12 @@ else
     echo "$(date '+%Y%m%d %r') [Filtering: sam header] OK Sam header saved to file $FILTER_DIR/header.txt." 2>&1 | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
 fi
 
-# Get sam file reads
-echo "$(date '+%Y%m%d %r') [Filtering: sam reads] Getting sam reads (without header)" 2>&1 | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
-grep -v "^@" $MAPPING_DIR/$3.sam > $FILTER_DIR/$3_tmp.sam 2>$ERROR_TMP
-rtrn=$?
-if [[ $rtrn -ne 0 ]]; then
-    echo "$(date '+%Y%m%d %r') [Filtering: sam reads] Failed No reads (without header) were saved to sam file. An error occured." | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
-    echo "$(date '+%Y%m%d %r') [Filtering: sam reads] Error: $(cat $ERROR_TMP)" | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
-    echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code $rtrn." | tee -a $ERROR_TMP 2>&1 | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
-    exit $rtrn
-else
-    echo "$(date '+%Y%m%d %r') [Filtering: sam reads] OK Only reads (without header) were saved to sam file $FILTER_DIR/$3_tmp.sam." 2>&1 | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
-fi
-
 # Count the initial number of reads in sam file
 echo "$(date '+%Y%m%d %r') [Filtering: all reads] $3.sam $(samtools view -S -c $FILTER_DIR/$3.sam | tail -1 2>/dev/null)" 2>&1 | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
 
 # Remove non aligned reads
 echo "$(date '+%Y%m%d %r') [Filtering: sam unmapped reads] Removing unmapped reads." 2>&1 | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
-#grep -v "*" $FILTER_DIR/$3_tmp.sam > $FILTER_DIR/$3_mapped.sam 2>$ERROR_TMP
-get_mapped_reads $FILTER_DIR/$3.sam 2>$ERROR_TMP >$FILTER_DIR/$3_mapped.sam
+get_mapped_reads $MAPPING_DIR/$3.sam 2>$ERROR_TMP >$FILTER_DIR/$3_mapped.sam
 rtrn=$?
 if [[ $rtrn -ne 0 ]]; then
     echo "$(date '+%Y%m%d %r') [Filtering: sam unmapped reads] Failed Unmapped reads were not filtered and no mapped reads were saved to sam file. An error occured." | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
