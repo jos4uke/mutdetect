@@ -13,7 +13,7 @@ VERSION=0.0.3
 
 PROD_PREFIX="/usr/local"
 DEV_PREFIX="$(pwd)/.."
-PREFIX=$PROD_PREFIX # TO BE CHANGED WHEN SWITCHING TO PROD
+PREFIX=$DEV_PREFIX # TO BE CHANGED WHEN SWITCHING TO PROD
 . $PREFIX/share/mutdetect/lib/mutdetect_lib.inc
 
 # Positionnement des variables
@@ -661,7 +661,8 @@ echo "$(date '+%Y%m%d %r') [Filtering: all reads] $3.sam $(samtools view -S -c $
 
 # Remove non aligned reads
 echo "$(date '+%Y%m%d %r') [Filtering: sam unmapped reads] Removing unmapped reads." 2>&1 | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
-grep -v "*" $FILTER_DIR/$3_tmp.sam > $FILTER_DIR/$3_mapped.sam 2>$ERROR_TMP
+#grep -v "*" $FILTER_DIR/$3_tmp.sam > $FILTER_DIR/$3_mapped.sam 2>$ERROR_TMP
+get_mapped_reads $FILTER_DIR/$3.sam 2>$ERROR_TMP >$FILTER_DIR/$3_mapped.sam
 rtrn=$?
 if [[ $rtrn -ne 0 ]]; then
     echo "$(date '+%Y%m%d %r') [Filtering: sam unmapped reads] Failed Unmapped reads were not filtered and no mapped reads were saved to sam file. An error occured." | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
@@ -670,6 +671,7 @@ if [[ $rtrn -ne 0 ]]; then
     exit $rtrn
 else
     echo "$(date '+%Y%m%d %r') [Filtering: sam unmapped reads] OK Only mapped reads were saved to sam file $FILTER_DIR/$3_mapped.sam." 2>&1 | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	echo "$(date '+%Y%m%d %r') [Filtering: sam unmapped reads] Info: $(cat $ERROR_TMP)." 2>&1 | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
 fi
 
 # Count the number of aligned reads in sam file
