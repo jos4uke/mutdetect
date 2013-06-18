@@ -657,7 +657,7 @@ else
 fi
 
 # Count the initial number of reads in sam file
-echo "$(date '+%Y%m%d %r') [Filtering: all reads] $3.sam $(wc -l $FILTER_DIR/$3_tmp.sam | awk '{print $1}') " 2>&1 | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+echo "$(date '+%Y%m%d %r') [Filtering: all reads] $3.sam $(samtools view -S -c $FILTER_DIR/$3.sam | tail -1 2>/dev/null)" 2>&1 | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
 
 # Remove non aligned reads
 echo "$(date '+%Y%m%d %r') [Filtering: sam unmapped reads] Removing unmapped reads." 2>&1 | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
