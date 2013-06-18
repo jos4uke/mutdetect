@@ -625,6 +625,17 @@ check_fastqc_quality_failure_report()
     fi
 }
 
+#---------------------------
+# get_mapped_reads function
+#
+get_mapped_reads()
+{
+	sam_input=$1
+
+	samtools view -S -F 4 $sam_input
+
+}
+
 
 #-----------------------------------------------------------
 # remove_reads_with_more_than_x_independent_events function
