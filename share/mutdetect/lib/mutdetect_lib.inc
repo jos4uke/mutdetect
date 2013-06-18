@@ -636,6 +636,14 @@ get_mapped_reads()
 
 }
 
+#---------------------------
+# get_total_reads_count
+#
+get_total_reads_count()
+{
+	sam_input=$1
+    samtools view -S -c $sam_input | tail -1
+}
 
 #-----------------------------------------------------------
 # remove_reads_with_more_than_x_independent_events function
