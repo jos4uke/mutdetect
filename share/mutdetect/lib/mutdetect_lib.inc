@@ -141,6 +141,8 @@ get_mutdetect_user_parameters()
     fi
 }
 
+
+
 #--------------------------------
 # check_params_validity function
 #
@@ -623,6 +625,17 @@ check_fastqc_quality_failure_report()
 	else
 	return $rtrn
     fi
+}
+
+#--------------------------------
+# get_tool_version
+get_tool_version()
+{
+	CMD_NAME=$1
+	version=$( $CMD_NAME 2>&1 | grep Version | awk '{gsub(/\)||\(/,"",$3);if ($3) {print $2"-"$3} else {print $2}}')
+
+    echo $version
+
 }
 
 #---------------------------
