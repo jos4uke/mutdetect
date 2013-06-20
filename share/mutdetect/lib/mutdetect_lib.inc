@@ -662,6 +662,33 @@ get_genomes_dir_list()
     echo "${dir_lists[@]}"
 }
 
+#------------------------------------
+# Get_Genomes_Dir_List_With_One_Fasta
+#
+get_genomes_dir_list_with_one_fasta()
+{
+	genomes_path=$1
+
+	dir_list=($(get_genomes_dir_list $genomes_path))
+
+	genomes_list_fasta=()
+	for d in "${dir_list[@]}"; do
+		fasta_count=$(ls $genomes_path/$d | grep -e "$d\.m*fas*$" | wc -l)
+		if [[  $fasta_count -eq 1 ]]
+		then
+			genomes_list_fasta=("${dir_list[@]}" "$d")
+		elif [[ $fasta_count -eq 0 ]]
+		then
+			echo "[Warning] No corresponding fasta file exists for genome directory $d in $genomes_path." 1>&2
+		elif [[ $fasta_count -ge 2 ]]
+		then			
+			echo "[Warning] More than 2 fasta file exists for genome directory $d in $genomes_path: ambiguous situation to be fixed." 1>&2
+		fi
+	done
+
+	echo "${genomes_list_fasta[@]}"
+}
+
 #---------------------------
 # get_mapped_reads function
 #
