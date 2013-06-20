@@ -639,51 +639,27 @@ get_tool_version()
 
 }
 
-get_list_rep()
-{
-ind=0
-s=0
-t=0
-i=0
-declare -A tab_r
-for j in $(ls $PWD_GENOME)
-        do
-                rep[$i]=$(basename $j)
-                ((i++))
-
-        tab_r[$ind]=$j
-        #echo ${tab_r[$ind]}
-
-        #fi
-        ((ind++))
-done <${stderrF}
-
-echo "Voici la liste des genomes disponibles"
-for s in ${!tab_r[*]}
-	do
-  		#echo  ${!tab_r[*]}
-  		#echo $s
-  		echo "$s" : ${tab_r[$s]}
-
-if [  ${tab_r[$genome_indice_user]}==$genome_indice_user ];
-then
-        echo " vous avez choisi" 
-        echo ${tab_r[$genome_indice_user]}
-else
-        echo "Votre genome nest pas dans la liste veuillez recommencer"
-fi
-done <${stderrF}
-
-}
 #-------------------
-# Get_Genome_List
+# Get_Genomes_Dir_List
 #
- get_genome_List()
+get_genomes_dir_list()
 {
-	genome_indice_user=$1
-    listg=$($genome_indice_user 2>&1 | get_list_rep() )
-    echo $listg
-    
+	genomes_path=$1
+
+	files_list=($(ls $genomes_path))
+	#echo "${files_list[@]}" 1>&2
+	#echo "${#files_list[@]}" 1>&2
+	dir_lists=()
+	for f in "${files_list[@]}"; do
+		#echo $f 1>&2
+		if [[ -d $genomes_path/$f ]]
+		then
+			#echo $f 1>&2
+			dir_lists=("${dir_lists[@]}" "$f")
+		fi
+	done
+	#echo "${dir_lists[@]}" 1>&2
+    echo "${dir_lists[@]}"
 }
 
 #---------------------------
