@@ -627,8 +627,9 @@ check_fastqc_quality_failure_report()
     fi
 }
 
-#--------------------------------
+#-------------------
 # get_tool_version
+#
 get_tool_version()
 {
 	CMD_NAME=$1
@@ -636,6 +637,53 @@ get_tool_version()
 
     echo $version
 
+}
+
+get_list_rep()
+{
+ind=0
+s=0
+t=0
+i=0
+declare -A tab_r
+for j in $(ls $PWD_GENOME)
+        do
+                rep[$i]=$(basename $j)
+                ((i++))
+
+        tab_r[$ind]=$j
+        #echo ${tab_r[$ind]}
+
+        #fi
+        ((ind++))
+done <${stderrF}
+
+echo "Voici la liste des genomes disponibles"
+for s in ${!tab_r[*]}
+	do
+  		#echo  ${!tab_r[*]}
+  		#echo $s
+  		echo "$s" : ${tab_r[$s]}
+
+if [  ${tab_r[$genome_indice_user]}==$genome_indice_user ];
+then
+        echo " vous avez choisi" 
+        echo ${tab_r[$genome_indice_user]}
+else
+        echo "Votre genome nest pas dans la liste veuillez recommencer"
+fi
+done <${stderrF}
+
+}
+#-------------------
+# Get_Genome_List
+#
+ get_genome_List()
+{
+	genome_indice_user=$1
+    listg=$($genome_indice_user 2>&1 | get_list_rep() )
+    echo $listg
+    
 }
 
 #---------------------------
