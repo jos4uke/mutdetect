@@ -689,6 +689,41 @@ get_genomes_dir_list_with_one_fasta()
 	echo "${genomes_list_fasta[@]}"
 }
 
+#--------------------------------
+# get_genomes_list_with_bwa_index
+#
+get_genomes_list_with_bwa_index()
+{
+	bwa_indexes_version=$1
+	shift
+	genomes_arr=($@)
+
+	#echo "${genomes_arr[@]}" 1>&2
+
+	bwa_index_ext=("amb" "ann" "bwt" "pac" "sa")
+	genomes_bwa=()
+	for g in "${genomes_arr[@]}"; do
+		#echo "searching index files for $bwa_indexes_version/$g" 1>&2
+		if [[ -d $bwa_indexes_version/$g ]]
+		then
+			for e in "${bwa_index_ext[@]}"; do
+				#echo "searching index file with extension: .$e" 1>&2
+				bwa_index_file=$bwa_indexes_version/$g/$g.$e
+				if [[ -s $bwa_index_file ]]
+				then
+					#echo "found index file: $bwa_index_file" 1>&2
+					continue
+				else
+					echo "[Error] Missing bwa index file: $bwa_index_file. Should be fixed." 1>&2
+				fi
+			done			
+			genomes_bwa=("${genomes_bwa[@]}" "$g")
+		fi
+	done
+	#echo "${genomes_bwa[@]}" 1>&2
+	echo "${genomes_bwa[@]}"
+}
+
 #---------------------------
 # get_mapped_reads function
 #
