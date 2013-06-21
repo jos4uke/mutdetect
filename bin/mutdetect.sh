@@ -274,6 +274,15 @@ do
 done
 echo "$(date '+%Y%m%d %r') [Parameters eval] Eval succesfully all pipeline config parameters for variable expansion." | tee -a $LOG_DIR/$LOGFILE 2>&1
 
+# set genome seq/indexes/annot variables 
+PARAMETERS_TABLE["REFERENCE_GENOME_FASTA"]="${PARAMETERS_TABLE["GENOMES_BASE_PATH"]}"/$GENOME_ALIAS/$(ls "${PARAMETERS_TABLE["GENOMES_BASE_PATH"]}"/$GENOME_ALIAS | grep -e "$GENOME_ALIAS\.m*fas*$")
+PARAMETERS_TABLE["BWA_REFERENCE_GENOME_INDEX"]="${PARAMETERS_TABLE["BWA_INDEXES"]}"/$GENOME_ALIAS/$GENOME_ALIAS
+PARAMETERS_TABLE["SAMTOOLS_REFERENCE_GENOME_INDEX"]="${PARAMETERS_TABLE["SAMTOOLS_INDEXES"]}"/$GENOME_ALIAS/$GENOME_ALIAS
+
+#echo ${PARAMETERS_TABLE["REFERENCE_GENOME_FASTA"]}
+#echo ${PARAMETERS_TABLE["BWA_REFERENCE_GENOME_INDEX"]}
+#echo ${PARAMETERS_TABLE["SAMTOOLS_REFERENCE_GENOME_INDEX"]}
+
 # Report parameters in LOGFILE
 
 echo -e "$(date '+%Y%m%d %r') [Parameters listing] OK All pipeline config parameters were loaded and checked successfully. \n\nList of parameters:\n" | tee -a $LOG_DIR/$LOGFILE 2>&1
