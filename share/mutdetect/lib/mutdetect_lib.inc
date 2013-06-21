@@ -759,6 +759,42 @@ get_genomes_list_with_samtools_index()
 	echo "${genomes_samtools[@]}"
 }
 
+#------------------------------------
+# get_genomes_list_with_snpeff_annot
+#
+get_genomes_list_with_snpeff_annot()
+{
+	snpeff_data=$1
+	shift
+	genomes_arr=($@)
+
+	#echo "${genomes_arr[@]}" 1>&2
+
+	snpeff_annot_files=("snpEffectPredictor.bin")
+
+	genomes_snpeff=()
+	for g in "${genomes_arr[@]}"; do
+		#echo "searching snpeff annot files for $snpeff_data/$g" 1>&2
+		if [[ -d $snpeff_data/$g ]]
+		then
+			for f in "${snpeff_annot_files[@]}"; do
+				#echo "searching snpeff annot file: .$f" 1>&2
+				snpeff_annot_file=$snpeff_data/$g/$f
+				if [[ -s $snpeff_annot_file ]]
+				then
+					#echo "found snp annot file: $snpeff_annot_file" 1>&2
+					continue
+				else
+					echo "[Error] Missing snpeff annot file: $snpeff_annot_file. Should be fixed." 1>&2
+				fi
+			done			
+			genomes_snpeff=("${genomes_snpeff[@]}" "$g")
+		fi
+	done
+	#echo "${genomes_snpeff[@]}" 1>&2
+	echo "${genomes_snpeff[@]}"
+}
+
 #---------------------------
 # get_mapped_reads function
 #
