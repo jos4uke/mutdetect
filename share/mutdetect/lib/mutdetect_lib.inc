@@ -724,6 +724,41 @@ get_genomes_list_with_bwa_index()
 	echo "${genomes_bwa[@]}"
 }
 
+#--------------------------------
+# get_genomes_list_with_samtools_index
+#
+get_genomes_list_with_samtools_index()
+{
+	samtools_indexes_version=$1
+	shift
+	genomes_arr=($@)
+
+	#echo "${genomes_arr[@]}" 1>&2
+
+	samtools_index_ext=("fai")
+	genomes_samtools=()
+	for g in "${genomes_arr[@]}"; do
+		#echo "searching index files for $samtools_indexes_version/$g" 1>&2
+		if [[ -d $samtools_indexes_version/$g ]]
+		then
+			for e in "${samtools_index_ext[@]}"; do
+				#echo "searching index file with extension: .$e" 1>&2
+				samtools_index_file=$samtools_indexes_version/$g/$g.$e
+				if [[ -s $samtools_index_file ]]
+				then
+					#echo "found index file: $samtools_index_file" 1>&2
+					continue
+				else
+					echo "[Error] Missing samtools index file: $samtools_index_file. Should be fixed." 1>&2
+				fi
+			done			
+			genomes_samtools=("${genomes_samtools[@]}" "$g")
+		fi
+	done
+	#echo "${genomes_samtools[@]}" 1>&2
+	echo "${genomes_samtools[@]}"
+}
+
 #---------------------------
 # get_mapped_reads function
 #
