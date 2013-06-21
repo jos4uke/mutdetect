@@ -47,6 +47,7 @@ ERROR_TMP="/tmp/tmp_mutdetect_error_${USER}_$DATE.log"
 
 declare -A PARAMETERS_TABLE
 GENOME_ALIASES_LIST=()
+GENOME_ALIAS=$4
 
 ###########################
 # SECTION GENOMES ALIASES
@@ -121,6 +122,23 @@ else
     fi
 fi
 
+# Check for genome alias
+echo "$(date '+%Y%m%d %r') [$(basename $0)] Checking genome alias ..." | tee -a $LOG_DIR/$LOGFILE 2>&1
+if [[ -n $GENOME_ALIAS ]]; then
+	if [[ $(in_array $GENOME_ALIAS "${GENOME_ALIASES_LIST[@]}") -eq 0 ]]; then
+		echo "$(date '+%Y%m%d %r') [$(basename $0)] OK Genome alias: $GENOME_ALIAS is valid." | tee -a $LOG_DIR/$LOGFILE 2>&1
+	else
+    	echo "$(date '+%Y%m%d %r') [Check genome alias] Genome alias, $GENOME_ALIAS, is not valid." | tee -a $LOG_DIR/$LOGFILE 2>&1
+    	echo "$(date '+%Y%m%d %r') [Check genome alias] Please refer to the pipeline usage message to get the full list of genome aliases." | tee -a $LOG_DIR/$LOGFILE 2>&1
+    	echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline." | tee -a $LOG_DIR/$LOGFILE 2>&1
+    	exit
+	fi
+else
+    echo "$(date '+%Y%m%d %r') [Check genome alias] Genome alias is null, this argument is mandatory." | tee -a $LOG_DIR/$LOGFILE 2>&1
+    echo "$(date '+%Y%m%d %r') [Check genome alias] Please refer to the pipeline usage message to get the full list of genome aliases." | tee -a $LOG_DIR/$LOGFILE 2>&1
+    echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline." | tee -a $LOG_DIR/$LOGFILE 2>&1
+    exit	
+fi
 
 # TEST if fastq input files exist 
 
@@ -263,8 +281,6 @@ for i in "${!PARAMETERS_TABLE[@]}"
 do
     echo -e "$i=${PARAMETERS_TABLE[$i]}" | tee -a $LOG_DIR/$LOGFILE 2>&1
 done
-
-exit
 
 ########################
 # SECTION TRIMMING
