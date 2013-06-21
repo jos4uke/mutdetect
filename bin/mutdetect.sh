@@ -18,7 +18,7 @@ PREFIX=$DEV_PREFIX # TO BE CHANGED WHEN SWITCHING TO PROD
 
 # Positionnement des variables
 
-ARGS=3
+ARGS=4
 DATE=$(date '+%Y_%m_%d_%H_%M_%S')
 LOGFILE=$3_$DATE\_log.txt
 WORKING_DIR=$(pwd)
@@ -46,6 +46,31 @@ ERROR_TMP="/tmp/tmp_mutdetect_error_${USER}_$DATE.log"
 # DECLARE GLOBAL VARIABLE
 
 declare -A PARAMETERS_TABLE
+GENOME_ALIASES_LIST=()
+
+###########################
+# SECTION GENOMES ALIASES
+###########################
+
+# GET GENOMES/INDEXES PATHS
+GENOMES_BASE_PATH=$(grep -e "^GENOMES_BASE_PATH=" $PIPELINE_DEFAULT_CONFIG | awk -F"=" '{print $2}')
+INDEXES_BASE_PATH=$(grep -e "^INDEXES_BASE_PATH=" $PIPELINE_DEFAULT_CONFIG | awk -F"=" '{print $2}')
+eval "BWA_INDEXES=$(grep -e "^BWA_INDEXES=" $PIPELINE_DEFAULT_CONFIG | awk -F"=" '{print $2}')"
+eval "SAMTOOLS_INDEXES=$(grep -e "^SAMTOOLS_INDEXES=" $PIPELINE_DEFAULT_CONFIG | awk -F"=" '{print $2}')"
+SNPEFF_PATH=$(grep -e "^SNPEFF_PATH=" $PIPELINE_DEFAULT_CONFIG | awk -F"=" '{print $2}')
+eval "SNPEFF_DATA=$(grep -e "^SNPEFF_DATA=" $PIPELINE_DEFAULT_CONFIG | awk -F"=" '{print $2}')"
+
+#echo ${GENOMES_BASE_PATH}
+#echo ${INDEXES_BASE_PATH}
+#echo ${BWA_INDEXES}
+#echo ${SAMTOOLS_INDEXES}
+#echo ${SNPEFF_DATA}
+
+# GET GENOME ALIASES LIST
+genomes_list_fasta=($(get_genomes_dir_list_with_one_fasta ${GENOMES_BASE_PATH} 2>/dev/null))
+genomes_w_bwa_idx=($(get_genomes_list_with_bwa_index ${BWA_INDEXES}/$(get_tool_version "bwa") "${genomes_list_fasta[@]}" 2>/dev/null))
+genomes_w_samtools_idx=($(get_genomes_list_with_samtools_index ${SAMTOOLS_INDEXES}/$(get_tool_version "samtools") "${genomes_w_bwa_idx[@]}" 2>/dev/null))
+GENOME_ALIASES_LIST=($(get_genomes_list_with_snpeff_annot ${SNPEFF_DATA} "${genomes_w_samtools_idx[@]}" 2>/dev/null))
 
 #==============================================
 # TEST if enough args else print usage message
@@ -55,11 +80,17 @@ Program: $(basename $0)
 Version: $VERSION
 Contact: IJPB Bioinformatics Dev Team
 
-Usage: $(basename $0) SEQfile1 SEQfile2 ECHname
+Usage: $(basename $0) SEQfile1 SEQfile2 ECHname Genome_alias
 
-Arguments: SEQfile1 Forward read sequences file (Illumina fastq file)
-           SEQfile2 Reverse read sequences file (Illumina fastq file)
-           ECHname  Prefix to use for the analysis, i.e. prefix can be the sample name or anything else suitable       
+Arguments: SEQfile1 	Forward read sequences file (Illumina fastq file)
+           SEQfile2 	Reverse read sequences file (Illumina fastq file)
+           ECHname  	Prefix to use for the analysis, i.e. prefix can be the sample name or anything else suitable
+           Genome_alias	Genome alias, see the available aliases in the following list
+
+Genome aliases list:
+$(for ga in "${GENOME_ALIASES_LIST[@]}"; do
+	echo "- $ga"
+done)
 
 Notes: 1. this pipeline version is actually able to perform variant calling
 
@@ -203,6 +234,28 @@ else
     echo "$(date '+%Y%m%d %r') [Check config: get_mutdetect_user_parameters] No $PIPELINE_USER_CONFIG file does exist, will proceed with default config parameters." | tee -a $LOG_DIR/$LOGFILE 2>&1
 fi
 
+# eval parameters value for variable expansion
+echo "$(date '+%Y%m%d %r') [Parameters eval] Will eval all pipeline config parameters for variable expansion" | tee -a $LOG_DIR/$LOGFILE 2>&1
+for i in "${!PARAMETERS_TABLE[@]}"
+do
+	if [[ $(echo "${PARAMETERS_TABLE[$i]}" | grep -e "^\\$" | wc -l) -eq 1 ]]
+	then
+		k1=${PARAMETERS_TABLE[$i]%%/*}
+		k2=${k1:1}
+		#echo $k2
+		eval "$k2=${PARAMETERS_TABLE[$k2]}"
+		eval "k3=${PARAMETERS_TABLE[$i]}"
+		#echo $k2		
+		#echo $k3
+		PARAMETERS_TABLE[$i]=$(echo "$k3")
+		unset k1 k2 k3
+		unset $(echo $k2)
+		#echo $k2
+		#echo $k3
+	fi
+done
+echo "$(date '+%Y%m%d %r') [Parameters eval] Eval succesfully all pipeline config parameters for variable expansion." | tee -a $LOG_DIR/$LOGFILE 2>&1
+
 # Report parameters in LOGFILE
 
 echo -e "$(date '+%Y%m%d %r') [Parameters listing] OK All pipeline config parameters were loaded and checked successfully. \n\nList of parameters:\n" | tee -a $LOG_DIR/$LOGFILE 2>&1
@@ -210,6 +263,8 @@ for i in "${!PARAMETERS_TABLE[@]}"
 do
     echo -e "$i=${PARAMETERS_TABLE[$i]}" | tee -a $LOG_DIR/$LOGFILE 2>&1
 done
+
+exit
 
 ########################
 # SECTION TRIMMING
