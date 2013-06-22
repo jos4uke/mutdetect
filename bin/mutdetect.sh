@@ -1006,7 +1006,7 @@ fi
 
 echo "$(date '+%Y%m%d %r') [Analysis: snpEff] Start snpEff ..." | tee -a $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1 
 
-java -jar ${PARAMETERS_TABLE["SNPEFF_PATH"]}/snpEff.jar ${PARAMETERS_TABLE["snpeff_data"]} \
+java -jar ${PARAMETERS_TABLE["SNPEFF_PATH"]}/snpEff.jar $GENOME_ALIAS \
     -c ${PARAMETERS_TABLE["SNPEFF_PATH"]}/snpEff.config \
     -i ${PARAMETERS_TABLE["snpeff_inFile_format"]} \
     -o vcf $ANALYSIS_DIR/$3.vcf > $ANALYSIS_DIR/$3_snpeff.vcf 2>$ERROR_TMP	
@@ -1021,7 +1021,7 @@ if [[ $? -ne 0 ]]; then
 	echo "$(date '+%Y%m%d %r') [Analysis: snpEff] Continue Analysis process" | tee -a $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
 	echo "$(date '+%Y%m%d %r') [Analysis: snpEff] OK $3_snpeff.vcf. Will write output in $ANALYSIS_DIR directory." | tee -a $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
 	fi   
-java -jar ${PARAMETERS_TABLE["SNPEFF_PATH"]}/snpEff.jar ${PARAMETERS_TABLE["snpeff_data"]} \
+java -jar ${PARAMETERS_TABLE["SNPEFF_PATH"]}/snpEff.jar $GENOME_ALIAS \
     -c ${PARAMETERS_TABLE["SNPEFF_PATH"]}/snpEff.config \
     -i ${PARAMETERS_TABLE["snpeff_inFile_format"]} \
     -o txt $ANALYSIS_DIR/$3.vcf > $ANALYSIS_DIR/$3_snpeff.txt 2>$ERROR_TMP	
