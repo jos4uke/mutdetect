@@ -916,7 +916,7 @@ if [[ -s $FILTER_DIR/$3_sorted.bam ]]; then
 	-$([[ ${PARAMETERS_TABLE["samtools_mpileup_B"]} -eq "TRUE" ]] && echo -ne "B") \
 	-$([[ ${PARAMETERS_TABLE["samtools_mpileup_Q"]} ]] && echo -ne "Q" ${PARAMETERS_TABLE["samtools_mpileup_Q"]}) \
 	-$([[ ${PARAMETERS_TABLE["samtools_mpileup_u"]} -eq "TRUE" ]] && echo -ne "u") \
-	-$([[ ${PARAMETERS_TABLE["samtools_mpileup_f"]} -eq "TRUE" ]] && echo -ne "f") ${PARAMETERS_TABLE["REFERENCE_GENOME_FASTA"]} $FILTER_DIR/$3_sorted.bam > $ANALYSIS_DIR/$3.bcf 2>$ERROR_TMP	
+	-$([[ ${PARAMETERS_TABLE["samtools_mpileup_f"]} -eq "TRUE" ]] && echo -ne "f") ${PARAMETERS_TABLE["SAMTOOLS_REFERENCE_GENOME_INDEX"]} $FILTER_DIR/$3_sorted.bam > $ANALYSIS_DIR/$3.bcf 2>$ERROR_TMP	
 	rtrn=$?	
 	if [[ $rtrn -ne 0 ]]; then
 	echo "$(date '+%Y%m%d %r') [Analysis: samtools mpileup] Failed formatage of $FILTER_DIR/$3_sorted.bam" | tee -a $ERROR_TMP 2>&1 | tee -a $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
