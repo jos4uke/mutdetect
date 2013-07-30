@@ -1,7 +1,9 @@
 #! /bin/bash
 
 # Equipe Dev 
-# Script provisoire pour la détection de mutation 
+# Script pour la détection de mutation 
+
+VERSION=dev
 
 VERSION=dev
 
@@ -18,7 +20,7 @@ PREFIX=$DEV_PREFIX # TO BE CHANGED WHEN SWITCHING TO PROD
 
 # Positionnement des variables
 
-ARGS=3
+ARGS=4
 DATE=$(date '+%Y_%m_%d_%H_%M_%S')
 LOGFILE=$3_$DATE\_log.txt
 WORKING_DIR=$(pwd)
@@ -46,6 +48,32 @@ ERROR_TMP="/tmp/tmp_mutdetect_error_${USER}_$DATE.log"
 # DECLARE GLOBAL VARIABLE
 
 declare -A PARAMETERS_TABLE
+GENOME_ALIASES_LIST=()
+GENOME_ALIAS=$4
+
+###########################
+# SECTION GENOMES ALIASES
+###########################
+
+# GET GENOMES/INDEXES PATHS
+GENOMES_BASE_PATH=$(grep -e "^GENOMES_BASE_PATH=" $PIPELINE_DEFAULT_CONFIG | awk -F"=" '{print $2}')
+INDEXES_BASE_PATH=$(grep -e "^INDEXES_BASE_PATH=" $PIPELINE_DEFAULT_CONFIG | awk -F"=" '{print $2}')
+eval "BWA_INDEXES=$(grep -e "^BWA_INDEXES=" $PIPELINE_DEFAULT_CONFIG | awk -F"=" '{print $2}')"
+eval "SAMTOOLS_INDEXES=$(grep -e "^SAMTOOLS_INDEXES=" $PIPELINE_DEFAULT_CONFIG | awk -F"=" '{print $2}')"
+SNPEFF_PATH=$(grep -e "^SNPEFF_PATH=" $PIPELINE_DEFAULT_CONFIG | awk -F"=" '{print $2}')
+eval "SNPEFF_DATA=$(grep -e "^SNPEFF_DATA=" $PIPELINE_DEFAULT_CONFIG | awk -F"=" '{print $2}')"
+
+#echo ${GENOMES_BASE_PATH}
+#echo ${INDEXES_BASE_PATH}
+#echo ${BWA_INDEXES}
+#echo ${SAMTOOLS_INDEXES}
+#echo ${SNPEFF_DATA}
+
+# GET GENOME ALIASES LIST
+genomes_list_fasta=($(get_genomes_dir_list_with_one_fasta ${GENOMES_BASE_PATH} 2>/dev/null))
+genomes_w_bwa_idx=($(get_genomes_list_with_bwa_index ${BWA_INDEXES}/$(get_tool_version "bwa") "${genomes_list_fasta[@]}" 2>/dev/null))
+genomes_w_samtools_idx=($(get_genomes_list_with_samtools_index ${SAMTOOLS_INDEXES}/$(get_tool_version "samtools") "${genomes_w_bwa_idx[@]}" 2>/dev/null))
+GENOME_ALIASES_LIST=($(get_genomes_list_with_snpeff_annot ${SNPEFF_DATA} "${genomes_w_samtools_idx[@]}" 2>/dev/null))
 
 #==============================================
 # TEST if enough args else print usage message
@@ -55,11 +83,17 @@ Program: $(basename $0)
 Version: $VERSION
 Contact: IJPB Bioinformatics Dev Team
 
-Usage: $(basename $0) SEQfile1 SEQfile2 ECHname
+Usage: $(basename $0) SEQfile1 SEQfile2 ECHname Genome_alias
 
-Arguments: SEQfile1 Forward read sequences file (Illumina fastq file)
-           SEQfile2 Reverse read sequences file (Illumina fastq file)
-           ECHname  Prefix to use for the analysis, i.e. prefix can be the sample name or anything else suitable       
+Arguments: SEQfile1 	Forward read sequences file (Illumina fastq file)
+           SEQfile2 	Reverse read sequences file (Illumina fastq file)
+           ECHname  	Prefix to use for the analysis, i.e. prefix can be the sample name or anything else suitable
+           Genome_alias	Genome alias, see the available aliases in the following list
+
+Genome aliases list:
+$(for ga in "${GENOME_ALIASES_LIST[@]}"; do
+	echo "- $ga"
+done)
 
 Notes: 1. this pipeline version is actually able to perform variant calling
 
@@ -90,6 +124,23 @@ else
     fi
 fi
 
+# Check for genome alias
+echo "$(date '+%Y%m%d %r') [$(basename $0)] Checking genome alias ..." | tee -a $LOG_DIR/$LOGFILE 2>&1
+if [[ -n $GENOME_ALIAS ]]; then
+	if [[ $(in_array $GENOME_ALIAS "${GENOME_ALIASES_LIST[@]}") -eq 0 ]]; then
+		echo "$(date '+%Y%m%d %r') [$(basename $0)] OK Genome alias: $GENOME_ALIAS is valid." | tee -a $LOG_DIR/$LOGFILE 2>&1
+	else
+    	echo "$(date '+%Y%m%d %r') [Check genome alias] Genome alias, $GENOME_ALIAS, is not valid." | tee -a $LOG_DIR/$LOGFILE 2>&1
+    	echo "$(date '+%Y%m%d %r') [Check genome alias] Please refer to the pipeline usage message to get the full list of genome aliases." | tee -a $LOG_DIR/$LOGFILE 2>&1
+    	echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline." | tee -a $LOG_DIR/$LOGFILE 2>&1
+    	exit
+	fi
+else
+    echo "$(date '+%Y%m%d %r') [Check genome alias] Genome alias is null, this argument is mandatory." | tee -a $LOG_DIR/$LOGFILE 2>&1
+    echo "$(date '+%Y%m%d %r') [Check genome alias] Please refer to the pipeline usage message to get the full list of genome aliases." | tee -a $LOG_DIR/$LOGFILE 2>&1
+    echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline." | tee -a $LOG_DIR/$LOGFILE 2>&1
+    exit	
+fi
 
 # TEST if fastq input files exist 
 
@@ -202,6 +253,37 @@ if [[ -s $PIPELINE_USER_CONFIG ]]; then
 else 
     echo "$(date '+%Y%m%d %r') [Check config: get_mutdetect_user_parameters] No $PIPELINE_USER_CONFIG file does exist, will proceed with default config parameters." | tee -a $LOG_DIR/$LOGFILE 2>&1
 fi
+
+# eval parameters value for variable expansion
+echo "$(date '+%Y%m%d %r') [Parameters eval] Will eval all pipeline config parameters for variable expansion" | tee -a $LOG_DIR/$LOGFILE 2>&1
+for i in "${!PARAMETERS_TABLE[@]}"
+do
+	if [[ $(echo "${PARAMETERS_TABLE[$i]}" | grep -e "^\\$" | wc -l) -eq 1 ]]
+	then
+		k1=${PARAMETERS_TABLE[$i]%%/*}
+		k2=${k1:1}
+		#echo $k2
+		eval "$k2=${PARAMETERS_TABLE[$k2]}"
+		eval "k3=${PARAMETERS_TABLE[$i]}"
+		#echo $k2		
+		#echo $k3
+		PARAMETERS_TABLE[$i]=$(echo "$k3")
+		unset k1 k2 k3
+		unset $(echo $k2)
+		#echo $k2
+		#echo $k3
+	fi
+done
+echo "$(date '+%Y%m%d %r') [Parameters eval] Eval succesfully all pipeline config parameters for variable expansion." | tee -a $LOG_DIR/$LOGFILE 2>&1
+
+# set genome seq/indexes/annot variables 
+PARAMETERS_TABLE["REFERENCE_GENOME_FASTA"]="${PARAMETERS_TABLE["GENOMES_BASE_PATH"]}"/$GENOME_ALIAS/$(ls "${PARAMETERS_TABLE["GENOMES_BASE_PATH"]}"/$GENOME_ALIAS | grep -e "$GENOME_ALIAS\.m*fas*$")
+PARAMETERS_TABLE["BWA_REFERENCE_GENOME_INDEX"]="${PARAMETERS_TABLE["BWA_INDEXES"]}"/$(get_tool_version "bwa")/$GENOME_ALIAS/$GENOME_ALIAS
+PARAMETERS_TABLE["SAMTOOLS_REFERENCE_GENOME_INDEX"]="${PARAMETERS_TABLE["SAMTOOLS_INDEXES"]}"/$(get_tool_version "samtools")/$GENOME_ALIAS/$GENOME_ALIAS
+
+#echo ${PARAMETERS_TABLE["REFERENCE_GENOME_FASTA"]}
+#echo ${PARAMETERS_TABLE["BWA_REFERENCE_GENOME_INDEX"]}
+#echo ${PARAMETERS_TABLE["SAMTOOLS_REFERENCE_GENOME_INDEX"]}
 
 # Report parameters in LOGFILE
 
@@ -643,25 +725,12 @@ else
     echo "$(date '+%Y%m%d %r') [Filtering: sam header] OK Sam header saved to file $FILTER_DIR/header.txt." 2>&1 | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
 fi
 
-# Get sam file reads
-echo "$(date '+%Y%m%d %r') [Filtering: sam reads] Getting sam reads (without header)" 2>&1 | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
-grep -v "^@" $MAPPING_DIR/$3.sam > $FILTER_DIR/$3_tmp.sam 2>$ERROR_TMP
-rtrn=$?
-if [[ $rtrn -ne 0 ]]; then
-    echo "$(date '+%Y%m%d %r') [Filtering: sam reads] Failed No reads (without header) were saved to sam file. An error occured." | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
-    echo "$(date '+%Y%m%d %r') [Filtering: sam reads] Error: $(cat $ERROR_TMP)" | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
-    echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code $rtrn." | tee -a $ERROR_TMP 2>&1 | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
-    exit $rtrn
-else
-    echo "$(date '+%Y%m%d %r') [Filtering: sam reads] OK Only reads (without header) were saved to sam file $FILTER_DIR/$3_tmp.sam." 2>&1 | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
-fi
-
 # Count the initial number of reads in sam file
-echo "$(date '+%Y%m%d %r') [Filtering: all reads] $3.sam $(wc -l $FILTER_DIR/$3_tmp.sam | awk '{print $1}') " 2>&1 | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+echo "$(date '+%Y%m%d %r') [Filtering: all reads] $3.sam $(get_total_reads_count $FILTER_DIR/$3.sam 2>/dev/null)" 2>&1 | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
 
 # Remove non aligned reads
 echo "$(date '+%Y%m%d %r') [Filtering: sam unmapped reads] Removing unmapped reads." 2>&1 | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
-grep -v "*" $FILTER_DIR/$3_tmp.sam > $FILTER_DIR/$3_mapped.sam 2>$ERROR_TMP
+get_mapped_reads $MAPPING_DIR/$3.sam 2>$ERROR_TMP >$FILTER_DIR/$3_mapped.sam
 rtrn=$?
 if [[ $rtrn -ne 0 ]]; then
     echo "$(date '+%Y%m%d %r') [Filtering: sam unmapped reads] Failed Unmapped reads were not filtered and no mapped reads were saved to sam file. An error occured." | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
@@ -670,6 +739,7 @@ if [[ $rtrn -ne 0 ]]; then
     exit $rtrn
 else
     echo "$(date '+%Y%m%d %r') [Filtering: sam unmapped reads] OK Only mapped reads were saved to sam file $FILTER_DIR/$3_mapped.sam." 2>&1 | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	echo "$(date '+%Y%m%d %r') [Filtering: sam unmapped reads] Info: $(cat $ERROR_TMP)." 2>&1 | tee -a $FILTER_DIR/$FILTER_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
 fi
 
 # Count the number of aligned reads in sam file
@@ -848,7 +918,7 @@ if [[ -s $FILTER_DIR/$3_sorted.bam ]]; then
 	-$([[ ${PARAMETERS_TABLE["samtools_mpileup_B"]} -eq "TRUE" ]] && echo -ne "B") \
 	-$([[ ${PARAMETERS_TABLE["samtools_mpileup_Q"]} ]] && echo -ne "Q" ${PARAMETERS_TABLE["samtools_mpileup_Q"]}) \
 	-$([[ ${PARAMETERS_TABLE["samtools_mpileup_u"]} -eq "TRUE" ]] && echo -ne "u") \
-	-$([[ ${PARAMETERS_TABLE["samtools_mpileup_f"]} -eq "TRUE" ]] && echo -ne "f") ${PARAMETERS_TABLE["REFERENCE_GENOME_FASTA"]} $FILTER_DIR/$3_sorted.bam > $ANALYSIS_DIR/$3.bcf 2>$ERROR_TMP	
+	-$([[ ${PARAMETERS_TABLE["samtools_mpileup_f"]} -eq "TRUE" ]] && echo -ne "f") ${PARAMETERS_TABLE["SAMTOOLS_REFERENCE_GENOME_INDEX"]} $FILTER_DIR/$3_sorted.bam > $ANALYSIS_DIR/$3.bcf 2>$ERROR_TMP	
 	rtrn=$?	
 	if [[ $rtrn -ne 0 ]]; then
 	echo "$(date '+%Y%m%d %r') [Analysis: samtools mpileup] Failed formatage of $FILTER_DIR/$3_sorted.bam" | tee -a $ERROR_TMP 2>&1 | tee -a $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
@@ -938,7 +1008,7 @@ fi
 
 echo "$(date '+%Y%m%d %r') [Analysis: snpEff] Start snpEff ..." | tee -a $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1 
 
-java -jar ${PARAMETERS_TABLE["SNPEFF_PATH"]}/snpEff.jar ${PARAMETERS_TABLE["snpeff_data"]} \
+java -jar ${PARAMETERS_TABLE["SNPEFF_PATH"]}/snpEff.jar $GENOME_ALIAS \
     -c ${PARAMETERS_TABLE["SNPEFF_PATH"]}/snpEff.config \
     -i ${PARAMETERS_TABLE["snpeff_inFile_format"]} \
     -o vcf $ANALYSIS_DIR/$3.vcf > $ANALYSIS_DIR/$3_snpeff.vcf 2>$ERROR_TMP	
@@ -953,7 +1023,7 @@ if [[ $? -ne 0 ]]; then
 	echo "$(date '+%Y%m%d %r') [Analysis: snpEff] Continue Analysis process" | tee -a $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
 	echo "$(date '+%Y%m%d %r') [Analysis: snpEff] OK $3_snpeff.vcf. Will write output in $ANALYSIS_DIR directory." | tee -a $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
 	fi   
-java -jar ${PARAMETERS_TABLE["SNPEFF_PATH"]}/snpEff.jar ${PARAMETERS_TABLE["snpeff_data"]} \
+java -jar ${PARAMETERS_TABLE["SNPEFF_PATH"]}/snpEff.jar $GENOME_ALIAS \
     -c ${PARAMETERS_TABLE["SNPEFF_PATH"]}/snpEff.config \
     -i ${PARAMETERS_TABLE["snpeff_inFile_format"]} \
     -o txt $ANALYSIS_DIR/$3.vcf > $ANALYSIS_DIR/$3_snpeff.txt 2>$ERROR_TMP	
