@@ -16,7 +16,7 @@ in_array() {
     local hay needle=$1
     shift
     for hay; do
-        [[ $hay -eq $needle ]] && return 0
+        [[ "$hay" == "$needle" ]] && return 0
     done
     return 1
 }
@@ -140,6 +140,8 @@ get_mutdetect_user_parameters()
 	return $rtrn
     fi
 }
+
+
 
 #--------------------------------
 # check_params_validity function
@@ -625,6 +627,193 @@ check_fastqc_quality_failure_report()
     fi
 }
 
+#-------------------
+# get_tool_version
+#
+get_tool_version()
+{
+	CMD_NAME=$1
+	version=$( $CMD_NAME 2>&1 | grep Version | awk '{gsub(/\)||\(/,"",$3);if ($3) {print $2"-"$3} else {print $2}}')
+
+    echo $version
+
+}
+
+#-------------------
+# Get_Genomes_Dir_List
+#
+get_genomes_dir_list()
+{
+	genomes_path=$1
+
+	files_list=($(ls $genomes_path))
+	#echo "${files_list[@]}" 1>&2
+	#echo "${#files_list[@]}" 1>&2
+	dir_lists=()
+	for f in "${files_list[@]}"; do
+		#echo $f 1>&2
+		if [[ -d $genomes_path/$f ]]
+		then
+			#echo $f 1>&2
+			dir_lists=("${dir_lists[@]}" "$f")
+		fi
+	done
+	#echo "${dir_lists[@]}" 1>&2
+    echo "${dir_lists[@]}"
+}
+
+#------------------------------------
+# Get_Genomes_Dir_List_With_One_Fasta
+#
+get_genomes_dir_list_with_one_fasta()
+{
+	genomes_path=$1
+
+	dir_list=($(get_genomes_dir_list $genomes_path))
+
+	genomes_list_fasta=()
+	for d in "${dir_list[@]}"; do
+		fasta_count=$(ls $genomes_path/$d | grep -e "$d\.m*fas*$" | wc -l)
+		if [[  $fasta_count -eq 1 ]]
+		then
+			genomes_list_fasta=("${dir_list[@]}" "$d")
+		elif [[ $fasta_count -eq 0 ]]
+		then
+			echo "[Warning] No corresponding fasta file exists for genome directory $d in $genomes_path." 1>&2
+		elif [[ $fasta_count -ge 2 ]]
+		then			
+			echo "[Warning] More than 2 fasta file exists for genome directory $d in $genomes_path: ambiguous situation to be fixed." 1>&2
+		fi
+	done
+
+	echo "${genomes_list_fasta[@]}"
+}
+
+#--------------------------------
+# get_genomes_list_with_bwa_index
+#
+get_genomes_list_with_bwa_index()
+{
+	bwa_indexes_version=$1
+	shift
+	genomes_arr=($@)
+
+	#echo "${genomes_arr[@]}" 1>&2
+
+	bwa_index_ext=("amb" "ann" "bwt" "pac" "sa")
+	genomes_bwa=()
+	for g in "${genomes_arr[@]}"; do
+		#echo "searching index files for $bwa_indexes_version/$g" 1>&2
+		if [[ -d $bwa_indexes_version/$g ]]
+		then
+			for e in "${bwa_index_ext[@]}"; do
+				#echo "searching index file with extension: .$e" 1>&2
+				bwa_index_file=$bwa_indexes_version/$g/$g.$e
+				if [[ -s $bwa_index_file ]]
+				then
+					#echo "found index file: $bwa_index_file" 1>&2
+					continue
+				else
+					echo "[Error] Missing bwa index file: $bwa_index_file. Should be fixed." 1>&2
+				fi
+			done			
+			genomes_bwa=("${genomes_bwa[@]}" "$g")
+		fi
+	done
+	#echo "${genomes_bwa[@]}" 1>&2
+	echo "${genomes_bwa[@]}"
+}
+
+#--------------------------------
+# get_genomes_list_with_samtools_index
+#
+get_genomes_list_with_samtools_index()
+{
+	samtools_indexes_version=$1
+	shift
+	genomes_arr=($@)
+
+	#echo "${genomes_arr[@]}" 1>&2
+
+	samtools_index_ext=("fai")
+	genomes_samtools=()
+	for g in "${genomes_arr[@]}"; do
+		#echo "searching index files for $samtools_indexes_version/$g" 1>&2
+		if [[ -d $samtools_indexes_version/$g ]]
+		then
+			for e in "${samtools_index_ext[@]}"; do
+				#echo "searching index file with extension: .$e" 1>&2
+				samtools_index_file=$samtools_indexes_version/$g/$g.$e
+				if [[ -s $samtools_index_file ]]
+				then
+					#echo "found index file: $samtools_index_file" 1>&2
+					continue
+				else
+					echo "[Error] Missing samtools index file: $samtools_index_file. Should be fixed." 1>&2
+				fi
+			done			
+			genomes_samtools=("${genomes_samtools[@]}" "$g")
+		fi
+	done
+	#echo "${genomes_samtools[@]}" 1>&2
+	echo "${genomes_samtools[@]}"
+}
+
+#------------------------------------
+# get_genomes_list_with_snpeff_annot
+#
+get_genomes_list_with_snpeff_annot()
+{
+	snpeff_data=$1
+	shift
+	genomes_arr=($@)
+
+	#echo "${genomes_arr[@]}" 1>&2
+
+	snpeff_annot_files=("snpEffectPredictor.bin")
+
+	genomes_snpeff=()
+	for g in "${genomes_arr[@]}"; do
+		#echo "searching snpeff annot files for $snpeff_data/$g" 1>&2
+		if [[ -d $snpeff_data/$g ]]
+		then
+			for f in "${snpeff_annot_files[@]}"; do
+				#echo "searching snpeff annot file: .$f" 1>&2
+				snpeff_annot_file=$snpeff_data/$g/$f
+				if [[ -s $snpeff_annot_file ]]
+				then
+					#echo "found snp annot file: $snpeff_annot_file" 1>&2
+					continue
+				else
+					echo "[Error] Missing snpeff annot file: $snpeff_annot_file. Should be fixed." 1>&2
+				fi
+			done			
+			genomes_snpeff=("${genomes_snpeff[@]}" "$g")
+		fi
+	done
+	#echo "${genomes_snpeff[@]}" 1>&2
+	echo "${genomes_snpeff[@]}"
+}
+
+#---------------------------
+# get_mapped_reads function
+#
+get_mapped_reads()
+{
+	sam_input=$1
+
+	samtools view -S -F 4 $sam_input
+
+}
+
+#---------------------------
+# get_total_reads_count
+#
+get_total_reads_count()
+{
+	sam_input=$1
+    samtools view -S -c $sam_input | tail -1
+}
 
 #-----------------------------------------------------------
 # remove_reads_with_more_than_x_independent_events function
