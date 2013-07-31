@@ -1022,24 +1022,51 @@ if [[ $? -ne 0 ]]; then
 	cat $ERROR_TMP | tee -a $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1 
 	echo "$(date '+%Y%m%d %r') [Analysis: snpEff] Continue Analysis process" | tee -a $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
 	echo "$(date '+%Y%m%d %r') [Analysis: snpEff] OK $3_snpeff.vcf. Will write output in $ANALYSIS_DIR directory." | tee -a $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
-	fi   
-java -jar ${PARAMETERS_TABLE["SNPEFF_PATH"]}/snpEff.jar $GENOME_ALIAS \
-    -c ${PARAMETERS_TABLE["SNPEFF_PATH"]}/snpEff.config \
-    -i ${PARAMETERS_TABLE["snpeff_inFile_format"]} \
-    -o txt $ANALYSIS_DIR/$3.vcf > $ANALYSIS_DIR/$3_snpeff.txt 2>$ERROR_TMP	
+	fi
+
+# SnpSift cmd: simplify Indels
+echo "$(date '+%Y%m%d %r') [Analysis: SnpSift] Running SnpSift to simplify Indels in snpEff vcf output ..." | tee -a $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+java -jar ${PARAMETERS_TABLE["SNPEFF_PATH"]}/SnpSift.jar simplifyIndels $ANALYSIS_DIR/$3_snpeff.vcf > $ANALYSIS_DIR/$3_snpeff_snpsift.vcf 2>$ERROR_TMP
 rtrn=$?
-if [[ $? -ne 0 ]]; then
-	echo "$(date '+%Y%m%d %r') [Analysis: snpEff] Failed snpEff" | tee -a $ERROR_TMP 2>&1 | tee -a $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+if [[ $rtrn -ne 0 ]]; then
+	echo "$(date '+%Y%m%d %r') [Analysis: SnpSift] Failed SnpSift" | tee -a $ERROR_TMP 2>&1 | tee -a $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
 	echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code $rtrn." | tee -a $ERROR_TMP 2>&1 | tee -a $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
 	echo "$(date '+%Y%m%d %r') [Pipeline error] More information can be found in $ERROR_TMP." | tee -a $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
 	exit $rtrn
-    else
-	cat $ERROR_TMP | tee -a $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1 
-	echo "$(date '+%Y%m%d %r') [Analysis: snpEff] Continue Analysis process" | tee -a $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
-	echo "$(date '+%Y%m%d %r') [Analysis: snpEff] OK $3_snpeff.txt. Will write output in $ANALYSIS_DIR directory." | tee -a $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
-	fi
+else
+	echo "$(date '+%Y%m%d %r') [Analysis: SnpSift] OK simplify indels in snpEff vcf output are in $3_snpeff_snpsift.vcf file" | tee -a $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	echo "$(date '+%Y%m%d %r') [Analysis: SnpSift] Continue Analysis process" | tee -a $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+fi
 
-echo "$(date '+%Y%m%d %r') [Analysis: snpeff]">> $LOG_DIR/$LOGFILE
+# Convert vcf to oneEffectPerLine
+echo "$(date '+%Y%m%d %r') [Analysis: vcfEffOneLIneN.pl] Running vcfEffOneLIneN.pl script to parse one effect per line from snpsift output ..." | tee -a $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+perl ${PARAMETERS_TABLE["DREAMFILE_PATH"]}/vcfEffOneLIneN.pl $ANALYSIS_DIR/$3_snpeff_snpsift.vcf 2>$ERROR_TMP
+rtrn=$?
+if [[ $rtrn -ne 0 ]]; then
+	echo "$(date '+%Y%m%d %r') [Analysis: vcfEffOneLIneN.pl] Failed vcfEffOneLIneN.pl" | tee -a $ERROR_TMP 2>&1 | tee -a $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code $rtrn." | tee -a $ERROR_TMP 2>&1 | tee -a $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	echo "$(date '+%Y%m%d %r') [Pipeline error] More information can be found in $ERROR_TMP." | tee -a $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	exit $rtrn
+else
+	echo "$(date '+%Y%m%d %r') [Analysis: vcfEffOneLIneN.pl] OK one effect per line in $3_snpeff_snpsift_OneLineEff.vcf file" | tee -a $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	echo "$(date '+%Y%m%d %r') [Analysis: vcfEffOneLIneN.pl] Continue Analysis process" | tee -a $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+fi
+
+# Generate the dream file
+echo "$(date '+%Y%m%d %r') [Analysis: dreamFileMakerV2.py] Running dreamFileMakerV2.py script to reformat vcf input into dream file txt output ..." | tee -a $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+python ${PARAMETERS_TABLE["DREAMFILE_PATH"]}/dreamFileMakerV2.py $ANALYSIS_DIR/$3_snpeff_snpsift_OneLineEff.vcf 2>$ERROR_TMP
+rtrn=$?
+if [[ $rtrn -ne 0 ]]; then
+	echo "$(date '+%Y%m%d %r') [Analysis: dreamFileMakerV2.py] Failed dreamFileMakerV2.py" | tee -a $ERROR_TMP 2>&1 | tee -a $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	echo "$(date '+%Y%m%d %r') [Pipeline error] Exits the pipeline, with error code $rtrn." | tee -a $ERROR_TMP 2>&1 | tee -a $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	echo "$(date '+%Y%m%d %r') [Pipeline error] More information can be found in $ERROR_TMP." | tee -a $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	exit $rtrn
+else
+	echo "$(date '+%Y%m%d %r') [Analysis: dreamFileMakerV2.py] OK reformated vcf output into $ANALYSIS_DIR/$3_snpeff_snpsift_OneLineEff_DF_FINAL.txt file" | tee -a $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+	echo "$(date '+%Y%m%d %r') [Analysis: dreamFileMakerV2.py] Continue Analysis process" | tee -a $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
+fi
+
+echo "$(date '+%Y%m%d %r') [Analysis: snpeff] Move genes and summary snpEff output files into Analysis directory." | tee -a $ANALYSIS_DIR/$ANALYSIS_DIR_$DATE.log 2>&1 | tee -a $LOG_DIR/$LOGFILE 2>&1
 mv snpEff_* $ANALYSIS_DIR/.
 
 
