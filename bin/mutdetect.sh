@@ -1010,6 +1010,7 @@ echo "$(date '+%Y%m%d %r') [Analysis: snpEff] Start snpEff ..." | tee -a $ANALYS
 
 java -jar ${PARAMETERS_TABLE["SNPEFF_PATH"]}/snpEff.jar $GENOME_ALIAS \
     -c ${PARAMETERS_TABLE["SNPEFF_PATH"]}/snpEff.config \
+	${PARAMETERS_TABLE["snpeff_options"]} \
     -i ${PARAMETERS_TABLE["snpeff_inFile_format"]} \
     -o vcf $ANALYSIS_DIR/$3.vcf > $ANALYSIS_DIR/$3_snpeff.vcf 2>$ERROR_TMP	
 rtrn=$?
