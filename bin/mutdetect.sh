@@ -3,9 +3,7 @@
 # Equipe Dev 
 # Script pour la détection de mutation 
 
-VERSION=dev
-
-VERSION=dev
+VERSION=0.0.4
 
 ########################
 # SECTION CONFIGURATION
@@ -15,7 +13,7 @@ VERSION=dev
 
 PROD_PREFIX="/usr/local"
 DEV_PREFIX="$(pwd)/.."
-PREFIX=$DEV_PREFIX # TO BE CHANGED WHEN SWITCHING TO PROD
+PREFIX=$PROD_PREFIX # TO BE CHANGED WHEN SWITCHING TO PROD
 . $PREFIX/share/mutdetect/lib/mutdetect_lib.inc
 
 # Positionnement des variables
