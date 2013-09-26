@@ -3,7 +3,7 @@
 # Equipe Dev 
 # Script pour la détection de mutation 
 
-VERSION=
+VERSION=0.0.6
 
 ########################
 # SECTION CONFIGURATION
