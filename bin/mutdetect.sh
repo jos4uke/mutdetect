@@ -16,7 +16,7 @@ DEV_PREFIX="$(pwd)/.."
 PREFIX=$DEV_PREFIX # TO BE CHANGED WHEN SWITCHING TO PROD
 
 . $PREFIX/share/mutdetect/lib/mutdetect_lib.inc
-. $PREFIX/share/bash-common/lib/bash-common_lib.inc
+. $PROD_PREFIX/share/bash-common/lib/bash-common_lib.inc
 
 # Positionnement des variables
 
