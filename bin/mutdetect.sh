@@ -3,18 +3,19 @@
 # Equipe Dev 
 # Script pour la détection de mutation 
 
-VERSION=0.0.5
+VERSION=0.0.6
 
 ########################
 # SECTION CONFIGURATION
 #######################
 
-# Inclusion de la librairie de fonctions
+# Inclusion des librairies de fonctions
 
 PROD_PREFIX="/usr/local"
 DEV_PREFIX="$(pwd)/.."
 PREFIX=$PROD_PREFIX # TO BE CHANGED WHEN SWITCHING TO PROD
 . $PREFIX/share/mutdetect/lib/mutdetect_lib.inc
+. $PROD_PREFIX/share/bash-common/lib/bash-common_lib.inc
 
 # Positionnement des variables
 
